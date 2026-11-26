@@ -11,30 +11,52 @@
     * { margin: 0; padding: 0; box-sizing: border-box; font-family: Arial, sans-serif; }
     body { background: linear-gradient(135deg, #111 0%, #333 100%); min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
     .card { background: white; border-radius: 12px; padding: 30px; width: 100%; max-width: 400px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
-    h1 { text-align: center; color: #f59e0b; margin-bottom: 5px; }
+    h1 { text-align: center; color: #f59e0b; margin-bottom: 5px; font-size: 26px; }
     .sub { text-align: center; color: #666; margin-bottom: 25px; }
-    input { width: 100%; padding: 14px; margin: 8px 0; border: 1px solid #ddd; border-radius: 8px; font-size: 16px; }
+    input, select { width: 100%; padding: 14px; margin: 8px 0; border: 1px solid #ddd; border-radius: 8px; font-size: 16px; }
     button { width: 100%; padding: 14px; background: #f59e0b; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 10px; }
     button:hover { background: #d97706; }
+    button.secundario { background: #e5e7eb; color: #333; margin-top: 5px; }
     .erro { color: #dc2626; text-align: center; margin-top: 15px; display: none; }
+    .sucesso { color: #16a34a; text-align: center; margin-top: 15px; display: none; }
     .loading { text-align: center; color: #666; margin-top: 15px; display: none; }
+    .aba { display: none; }
+    .aba.ativa { display: block; }
+    .troca { text-align: center; margin-top: 15px; font-size: 14px; color: #666; cursor: pointer; }
+    .troca span { color: #f59e0b; font-weight: bold; }
   </style>
 </head>
 <body>
   <div class="card">
     <h1>🏍️ Motoflash</h1>
-    <p class="sub">Faça seu login para entrar</p>
-    
-    <input type="email" id="email" placeholder="Seu e-mail">
-    <input type="password" id="senha" placeholder="Sua senha">
-    <button onclick="entrar()">Entrar</button>
-    
+    <p class="sub" id="tituloAba">Faça seu login</p>
+
+    <div id="abaLogin" class="aba ativa">
+      <input type="email" id="email" placeholder="Seu e-mail">
+      <input type="password" id="senha" placeholder="Sua senha">
+      <button onclick="entrar()">Entrar</button>
+      <div class="troca" onclick="mostrarAba('cadastro')">Não tem conta? <span>Criar agora</span></div>
+    </div>
+
+    <div id="abaCadastro" class="aba">
+      <input type="text" id="nomeCompleto" placeholder="Seu nome completo">
+      <input type="email" id="emailCadastro" placeholder="Seu e-mail">
+      <input type="password" id="senhaCadastro" placeholder="Crie uma senha (mínimo 6 dígitos)">
+      <select id="tipoPerfil">
+        <option value="">Selecione quem você é</option>
+        <option value="restaurante">🍽️ Sou Restaurante</option>
+        <option value="motoboy">🏍️ Sou Motoboy</option>
+      </select>
+      <button onclick="criarConta()">Criar conta</button>
+      <div class="troca" onclick="mostrarAba('login')">Já tem conta? <span>Entrar</span></div>
+    </div>
+
     <div class="erro" id="mensagemErro"></div>
-    <div class="loading" id="carregando">Entrando...</div>
+    <div class="sucesso" id="mensagemSucesso"></div>
+    <div class="loading" id="carregando">Processando...</div>
   </div>
 
 <script>
-// CONFIGURAÇÃO DO FIREBASE
 const firebaseConfig = {
   apiKey: "AIzaSyBD9qiDcnYQJDGn850KUkMpiBatuP0DWT8",
   authDomain: "motoflash-b1396.firebaseapp.com",
@@ -44,10 +66,83 @@ const firebaseConfig = {
   appId: "1:709365607477:web:5a83b8c5e46a6b7c8d9e0f"
 };
 
-// INICIALIZAR FIREBASE
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
+
+function mostrarAba(nome) {
+  document.getElementById('mensagemErro').style.display = 'none';
+  document.getElementById('mensagemSucesso').style.display = 'none';
+  
+  if (nome === 'cadastro') {
+    document.getElementById('abaLogin').classList.remove('ativa');
+    document.getElementById('abaCadastro').classList.add('ativa');
+    document.getElementById('tituloAba').textContent = 'Criar conta';
+  } else {
+    document.getElementById('abaCadastro').classList.remove('ativa');
+    document.getElementById('abaLogin').classList.add('ativa');
+    document.getElementById('tituloAba').textContent = 'Faça seu login';
+  }
+}
+
+async function criarConta() {
+  const nome = document.getElementById('nomeCompleto').value;
+  const email = document.getElementById('emailCadastro').value;
+  const senha = document.getElementById('senhaCadastro').value;
+  const tipo = document.getElementById('tipoPerfil').value;
+  const erro = document.getElementById('mensagemErro');
+  const sucesso = document.getElementById('mensagemSucesso');
+  const loading = document.getElementById('carregando');
+  
+  erro.style.display = 'none';
+  sucesso.style.display = 'none';
+  
+  if (!nome || !email || !senha || !tipo) {
+    erro.textContent = 'Preencha todos os campos!';
+    erro.style.display = 'block';
+    return;
+  }
+  
+  if (senha.length < 6) {
+    erro.textContent = 'Senha precisa ter pelo menos 6 caracteres!';
+    erro.style.display = 'block';
+    return;
+  }
+  
+  loading.style.display = 'block';
+  
+  try {
+    const resultado = await auth.createUserWithEmailAndPassword(email, senha);
+    const uid = resultado.user.uid;
+    
+    // ✅ Já cria com acesso LIBERADO direto!
+    await db.collection('usuarios').doc(uid).set({
+      Nome: nome,
+      Email: email,
+      Tipo: tipo,
+      Ativo: true,
+      DataCadastro: new Date().toISOString()
+    });
+    
+    sucesso.innerHTML = '✅ Conta criada com sucesso! Entrando...';
+    sucesso.style.display = 'block';
+    
+    setTimeout(() => {
+      window.location.href = 'painel.html';
+    }, 1500);
+    
+  } catch (e) {
+    console.error(e);
+    if (e.code === 'auth/email-already-in-use') {
+      erro.textContent = 'Este e-mail já está cadastrado!';
+    } else {
+      erro.textContent = 'Erro: ' + e.message;
+    }
+    erro.style.display = 'block';
+  } finally {
+    loading.style.display = 'none';
+  }
+}
 
 async function entrar() {
   const email = document.getElementById('email').value;
@@ -58,7 +153,7 @@ async function entrar() {
   erro.style.display = 'none';
   loading.style.display = 'block';
   
-  if(!email || !senha) {
+  if (!email || !senha) {
     erro.textContent = 'Preencha e-mail e senha!';
     erro.style.display = 'block';
     loading.style.display = 'none';
@@ -66,35 +161,25 @@ async function entrar() {
   }
   
   try {
-    // Faz login
-    const resultado = await auth.signInWithEmailAndPassword(email, senha);
-    const uid = resultado.user.uid;
-    
-    // Busca dados do usuário
-    const doc = await db.collection('usuarios').doc(uid).get();
-    
-    if(doc.exists) {
-      const dados = doc.data();
-      localStorage.setItem('usuarioLogado', JSON.stringify(dados));
-      window.location.href = 'painel.html';
-    } else {
-      erro.textContent = 'Usuário não encontrado no sistema!';
-      erro.style.display = 'block';
-    }
+    await auth.signInWithEmailAndPassword(email, senha);
+    window.location.href = 'painel.html';
   } catch (e) {
     console.error(e);
-    erro.textContent = 'E-mail ou senha incorretos!';
+    if (e.code === 'auth/invalid-credential') {
+      erro.textContent = 'E-mail ou senha incorretos!';
+    } else {
+      erro.textContent = 'Erro: ' + e.message;
+    }
     erro.style.display = 'block';
   } finally {
     loading.style.display = 'none';
   }
 }
 
-// Se já estiver logado, vai direto pro painel
 auth.onAuthStateChanged(async (user) => {
-  if(user) {
+  if (user) {
     const doc = await db.collection('usuarios').doc(user.uid).get();
-    if(doc.exists) {
+    if (doc.exists) {
       window.location.href = 'painel.html';
     }
   }
