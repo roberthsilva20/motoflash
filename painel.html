@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Motoflash — Sistema</title>
+  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore-compat.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: Arial, sans-serif; }
+    body { background: #f4f4f4; color: #222; padding: 15px; }
+    header { background: #111; color: white; padding: 15px 20px; border-radius: 10px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
+    h1 { font-size: 20px; }
+    .sair { background: #dc2626; color: white; border: none; padding: 8px 15px; border-radius: 6px; cursor: pointer; font-weight: bold; }
+    .card { background: white; padding: 20px; border-radius: 10px; margin-bottom: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+    button { background: #f59e0b; color: white; border: none; padding: 10px 16px; border-radius: 6px; font-size: 15px; cursor: pointer; font-weight: bold; margin: 5px 3px; }
+    button.sucesso { background: #16a34a; }
+    button.perigo { background: #dc2626; }
+    input, select { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ddd; border-radius: 6px; font-size: 15px; }
+    .status { padding: 4px 10px; border-radius: 20px; font-size: 13px; font-weight: bold; }
+    .status.ativo { background: #dcfce7; color: #166534; }
+    .status.inativo { background: #fee2e2; color: #991b1b; }
+    .pedido { border-left: 4px solid #f59e0b; padding: 12px 15px; margin: 10px 0; background: #fffbeb; border-radius: 6px; }
+    .tabs { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 20px; }
+    .tab { padding: 10px 15px; background: #ddd; border-radius: 6px; cursor: pointer; font-size: 14px; }
+    .tab.ativa { background: #f59e0b; color: white; }
+    .aba { display: none; }
+    .aba.mostra { display: block; }
+    .boasvindas { text-align: center; padding: 30px 10px; }
+    .boasvindas h2 { color: #f59e0b; margin-bottom: 10px; }
+    .carregando { text-align: center; padding: 50px; font-size: 18px; color: #666; }
+    .oculto { display: none !important; }
+  </style>
+</head>
+<body>
+
+<div id="telaCarregando" class="carregando">🔄 Carregando...</div>
+
+<div id="conteudo" class="oculto">
+  <header>
+    <div>
+      <h1 id="tituloPagina">🏍️ Motoflash</h1>
+      <p id="nomeUsuario" style="opacity:0.8; font-size:14px;"></p>
+    </div>
+    <button class="sair" onclick="sair()">Sair</button>
+  </header>
+
+  <!-- 🔹 Tela do DONO -->
+  <div id="areaDono" class="oculto">
+    <div class="tabs">
+      <div class="tab ativa" onclick="mostrarAba('restaurantes')">🏪 Restaurantes</div>
+      <div class="tab" onclick="mostrarAba('pedidos')">📦 Pedidos</div>
+      <div class="tab" onclick="mostrarAba('financeiro')">💰 Financeiro</div>
+    </div>
+
+    <div id="restaurantes" class="aba mostra">
+      <div class="card">
+        <h3>➕ Cadastrar Restaurante</h3>
+        <input type="text" id="nomeRestaurante" placeholder="Nome do restaurante">
+        <input type="email" id="emailRestaurante" placeholder="E-mail de acesso">
+        <input type="text" id="contatoRestaurante" placeholder="WhatsApp / Telefone">
+        <button onclick="cadastrarRestaurante()">Cadastrar</button>
+      </div>
+      <div class="card">
+        <h3>📋 Restaurantes Cadastrados</h3>
+        <div id="listaRestaurantes"></div>
+      </div>
+    </div>
+
+    <div id="pedidos" class="aba">
+      <div class="card">
+        <h3>📦 Pedidos Pendentes</h3>
+        <div id="listaPedidos"></div>
+      </div>
+    </div>
+
+    <div id="financeiro" class="aba">
+      <div class="card">
+        <h3>💰 Resumo Financeiro</h3>
+        <p style="font-size:17px; margin:8px 0;">Taxa por entrega: <strong style="color:#f59e0b;">R$ 10,00</strong></p>
+        <p style="font-size:17px; margin:8px 0;">Sua comissão: <strong style="color:#16a34a;">R$ 1,00</strong> | Motoboy: R$ 9,00</p>
+        <hr style="margin:15px 0;">
+        <h4>Histórico de Entregas</h4>
+        <div id="historicoFinanceiro"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 🔹 Tela do RESTAURANTE -->
+  <div id="areaRestaurante" class="oculto">
+    <div class="boasvindas">
+      <h2>🍽️ Área do Restaurante</h2>
+      <p>Bem-vindo! Preencha os dados abaixo para solicitar um motoboy.</p>
+    </div>
+    <div class="card">
+      <h3>🚚 Solicitar Motoboy</h3>
+      <input type="text" id="enderecoEntrega" placeholder="Endereço completo de entrega">
+      <input type="text" id="valorPedido" placeholder="Valor do pedido (opcional)">
+      <p style="margin:10px 0; color:#f59e0b; font-weight:bold;">Taxa de entrega: R$ 10,00 — Pague via PIX após confirmação</p>
+      <button onclick="solicitarMotoboy()">Solicitar Motoboy</button>
+    </div>
+    <div class="card">
+      <h3>📋 Meus Pedidos</h3>
+      <div id="meusPedidos"></div>
+    </div>
+  </div>
+
+  <!-- 🔹 Tela do MOTOBOY -->
+  <div id="areaMotoboy" class="oculto">
+    <div class="boasvindas">
+      <h2>🏍️ Área do Motoboy</h2>
+      <p>Pedidos disponíveis para você</p>
+    </div>
+    <div id="pedidosDisponiveis"></div>
+  </div>
+</div>
+
+<script>
+// INICIALIZAR FIREBASE
+const firebaseConfig = {
+  apiKey: "AIzaSyBD9qiDcnYQJDGn850KUkMpiBatuP0DWT8",
+  authDomain: "motoflash-b1396.firebaseapp.com",
+  projectId: "motoflash-b1396",
+  storageBucket: "motoflash-b1396.firebasestorage.app",
+  messagingSenderId: "709365607477",
+  appId: "1:709365607477:web:5a83b8c5e46a6b7c8d9e0f"
+};
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
+
+let usuarioAtual = null;
+let unsubscribePedidos = null;
+
+// VERIFICAR LOGIN
+auth.onAuthStateChanged(async (user) => {
+  if (!user) {
+    window.location.href = 'index.html';
+    return;
+  }
+  try {
+    const doc = await db.collection('usuarios').doc(user.uid).get();
+    if (!doc.exists) {
+      alert('Usuário não encontrado!');
+      await auth.signOut();
+      window.location.href = 'index.html';
+      return;
+    }
+    usuarioAtual = { uid: user.uid, ...doc.data() };
+    mostrarTelaCorreta();
+  } catch (e) {
+    console.error(e);
+    alert('Erro ao carregar dados!');
+  }
+});
+
+function mostrarTelaCorreta() {
+  document.getElementById('telaCarregando').style.display = 'none';
+  document.getElementById('conteudo').classList.remove('oculto');
+  document.getElementById('nomeUsuario').textContent = usuarioAtual.Nome || usuarioAtual.nome;
+
+  const tipo = usuarioAtual.Tipo || usuarioAtual.tipo;
+  
+  if (tipo === 'dono') {
+    document.getElementById('areaDono').classList.remove('oculto');
+    document.getElementById('tituloPagina').textContent = '🏍️ Painel do Dono';
+    carregarRestaurantes();
+    carregarPedidos();
+    carregarFinanceiro();
+    iniciarEscutaPedidos();
+  } else if (tipo === 'restaurante') {
+    document.getElementById('areaRestaurante').classList.remove('oculto');
+    document.getElementById('tituloPagina').textContent = '🍽️ Restaurante';
+    carregarMeusPedidos();
+    iniciarEscutaMeusPedidos();
+  } else if (tipo === 'motoboy') {
+    document.getElementById('areaMotoboy').classList.remove('oculto');
+    document.getElementById('tituloPagina').textContent = '🏍️ Motoboy';
+    carregarPedidosDisponiveis();
+    iniciarEscutaDisponiveis();
+  }
+}
+
+function sair() {
+  if (unsubscribePedidos) unsubscribePedidos();
+  auth.signOut().then(() => {
+    localStorage.removeItem('usuarioLogado');
+    window.location.href = 'index.html';
+  });
+}
+
+function mostrarAba(nome) {
+  document.querySelectorAll('.aba').forEach(a => a.classList.remove('mostra'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('ativa'));
+  document.getElementById(nome).classList.add('mostra');
+  event.target.classList.add('ativa');
+}
+
+// ========== FUNÇÕES DO DONO ==========
+async function cadastrarRestaurante() {
+  const nome = document.getElementById('nomeRestaurante').value;
+  const email = document.getElementById('emailRestaurante').value;
+  const contato = document.getElementById('contatoRestaurante').value;
+  
+  if (!nome || !email) return alert('Preencha nome e e-mail!');
+  
+  try {
+    await db.collection('restaurantes').add({
+      Nome: nome,
+      Email: email,
+      Contato: contato,
+      Ativo: true,
+      PlanoAtivo: true,
+      DataCadastro: new Date().toISOString(),
+      MesesAtivos: 1
+    });
+    alert('✅ Restaurante cadastrado! Primeiro mês GRÁTIS!');
+    document.getElementById('nomeRestaurante').value = '';
+    document.getElementById('emailRestaurante').value = '';
+    document.getElementById('contatoRestaurante').value = '';
+    carregarRestaurantes();
+  } catch (e) {
+    alert('Erro ao cadastrar: ' + e.message);
+  }
+}
+
+async function carregarRestaurantes() {
+  const container = document.getElementById('listaRestaurantes');
+  const snap = await db.collection('restaurantes').get();
+  
+  if (snap.empty) {
+    container.innerHTML = '<p style="color:#666; padding:10px;">Nenhum restaurante cadastrado.</p>';
+    return;
+  }
+  
+  container.innerHTML = snap.docs.map(doc => {
+    const r = doc.data();
+    return `
+      <div style="padding:12px; border-bottom:1px solid #eee;">
+        <strong>${r.Nome}</strong>
+        <span class="status ${r.Ativo ? 'ativo' : 'inativo'}" style="margin-left:8px;">
+          ${r.Ativo ? 'ATIVO' : 'INATIVO'}
+        </span>
+        <p style="font-size:13px; color:#666; margin-top:4px;">${r.Email} — ${r.Contato}</p>
+        <button onclick="alternarStatus('${doc.id}', ${r.Ativo})" style="padding:5px 10px; font-size:13px;">
+          ${r.Ativo ? 'Bloquear' : 'Liberar'}
+        </button>
+      </div>
+    `;
+  }).join('');
+}
+
+async function alternarStatus(id, atual) {
+  await db.collection('restaurantes').doc(id).update({ Ativo: !atual });
+  carregarRestaurantes();
+}
+
+async function carregarPedidos() {
+  const container = document.getElementById('listaPedidos');
+  const snap = await db.collection('pedidos')
+    .where('status', 'in', ['aguardando-pagamento', 'aguardando-confirmação'])
+    .orderBy('data', 'desc').get();
+  
+  if (snap.empty) {
+    container.innerHTML = '<p style="color:#666; padding:10px;">Nenhum pedido pendente.</p>';
+    return;
+  }
+  
+  container.innerHTML = snap.docs.map(doc => {
+    const p = { id: doc.id, ...doc.data() };
+    return `
+      <div class="pedido">
+        <p><strong>Restaurante:</strong> ${p.nomeRestaurante || 'Não identificado'}</p>
+        <p><strong>Entrega:</strong> ${p.endereco}</p>
+        <p><strong>Valor entrega:</strong> R$ 10,00</p>
+        <p><strong>Sua taxa:</strong> R$ 1,00 | Motoboy: R$ 9,00</p>
+        <p style="color:#f59e0b; font-weight:bold;">Status: Aguardando confirmação do PIX</p>
+        <button class="sucesso" onclick="confirmarPix('${p.id}')">✅ PIX Recebido</button>
+        <button class="perigo" onclick="cancelarPedido('${p.id}')">❌ Cancelar</button>
+      </div>
+    `;
+  }).join('');
+}
+
+async function confirmarPix(id) {
+  await db.collection('pedidos').doc(id).update({
+    status: 'disponivel',
+    pixConfirmadoPor: usuarioAtual.Nome,
+    dataPix: new Date().toISOString()
+  });
+  
+  const pedidoRef = await db.collection('pedidos').doc(id).get();
+  const pedido = pedidoRef.data();
+  
+  await db.collection('historico').add({
+    data: new Date().toISOString(),
+    idPedido: id,
+    restaurante: pedido.nomeRestaurante || 'Não identificado',
+    taxaSua: 1.00,
+    repasseMotoboy: 9.00
+  });
+  
+  alert('✅ PIX confirmado! Pedido disponível para os motoboys!');
+  carregarPedidos();
+  carregarFinanceiro();
+}
+
+async function cancelarPedido(id) {
+  if (!confirm('Tem certeza?')) return;
+  await db.collection('pedidos').doc(id).delete();
+  carregarPedidos();
+}
+
+async function carregarFinanceiro() {
+  const container = document.getElementById('historicoFinanceiro');
+  const snap = await db.collection('historico').orderBy('data', 'desc').limit(20).get();
+  
+  if (snap.empty) {
+    container.innerHTML = '<p style="color:#666; padding:10px;">Nenhuma entrega concluída.</p>';
+    return;
+  }
+  
+  container.innerHTML = snap.docs.map(doc => {
+    const h = doc.data();
+    const data = new Date(h.data).toLocaleString('pt-BR');
+    return `
+      <div style="padding:8px 0; border-bottom:1px solid #eee; font-size:14px;">
+        <strong>${data}</strong> — ${h.restaurante}<br>
+        Sua receita: <span style="color:#16a34a;">+R$ ${h.taxaSua.toFixed(2)}</span> | Motoboy: R$ ${h.repasseMotoboy.toFixed(2)}
+      </div>
+    `;
+  }).join('');
+}
+
+function iniciarEscutaPedidos() {
+  unsubscribePedidos = db.collection('pedidos')
+    .where('status', 'in', ['aguardando-pagamento', 'aguardando-confirmação'])
+    .onSnapshot(() => carregarPedidos());
+}
+
+// ========== FUNÇÕES DO RESTAURANTE ==========
+async function solicitarMotoboy() {
+  const endereco = document.getElementById('enderecoEntrega').value;
+  const valor = document.getElementById('valorPedido').value || '---';
+  
+  if (!endereco) return alert('Digite o endereço de entrega!');
+  
+  await db.collection('pedidos').add({
+    uidRestaurante: usuarioAtual.uid,
+    nomeRestaurante: usuarioAtual.Nome || usuarioAtual.nome,
+    endereco: endereco,
+    valorPedido: valor,
+    status: 'aguardando-pagamento',
+    data: new Date().toISOString()
+  });
+  
+  alert('✅ Solicitação enviada! Aguarde a confirmação do pagamento.');
+  document.getElementById('enderecoEntrega').value = '';
+  document.getElementById('valorPedido').value = '';
+  carregarMeusPedidos();
+}
+
+async function carregarMeusPedidos() {
+  const container = document.getElementById('meusPedidos');
+  const snap = await db.collection('pedidos')
+    .where('uidRestaurante', '==', usuarioAtual.uid)
+    .orderBy('data', 'desc').limit(10).get();
+  
+  if (snap.empty) {
+    container.innerHTML = '<p style="color:#666; padding:10px;">Nenhum pedido solicitado.</p>';
+    return;
+  }
+  
+  container.innerHTML = snap.docs.map(doc => {
+    const p = doc.data();
+    const statusTexto = {
+      'aguardando-pagamento': '⏳ Aguardando PIX',
+      'aguardando-confirmação': '🔄 Aguardando confirmação',
+      'disponivel': '🏍️ Disponível para motoboy',
+      'aceito': '✅ Motoboy a caminho',
+      'concluido': '✅ Entregue'
+    };
+    return `
+      <div style="padding:12px; border-bottom:1px solid #eee;">
+        <p><strong>Entrega:</strong> ${p.endereco}</p>
+        <p><strong>Status:</strong> ${statusTexto[p.status] || p.status}</p>
+        <p style="font-size:13px; color:#666;">${new Date(p.data).toLocaleString('pt-BR')}</p>
+      </div>
+    `;
+  }).join('');
+}
+
+function iniciarEscutaMeusPedidos() {
+  db.collection('pedidos')
+    .where('uidRestaurante', '==', usuarioAtual.uid)
+    .onSnapshot(() => carregarMeusPedidos())
