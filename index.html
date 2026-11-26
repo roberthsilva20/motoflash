@@ -36,9 +36,13 @@
     .resumo { background: #f9fafb; padding: 12px; border-radius: 6px; margin-top: 10px; font-size: 15px; line-height: 1.6; }
     .erro { color: #dc2626; font-size: 14px; margin-top: 5px; display: none; }
     .sair-btn { background: transparent; color: #888; border: none; font-size: 14px; text-align: right; cursor: pointer; width: auto; }
+    .alerta-som { position: fixed; top: 0; left: 0; right: 0; background: #16a34a; color: white; padding: 12px; text-align: center; font-weight: bold; z-index: 9999; display: none; animation: pulse 1s infinite; }
+    @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.8; } 100% { opacity: 1; } }
   </style>
 </head>
 <body>
+
+<div class="alerta-som" id="alertaNotificacao">🔔 Tem novidade!</div>
 
 <header>
   <div class="logo">🏍️ Motoflash</div>
@@ -83,8 +87,7 @@
     <h2>🍽️ Novo Pedido de Entrega</h2>
     
     <div class="aviso">
-      ⚠️ <strong>Valor mínimo da entrega: R$ 7,00</strong><br>
-    
+      ⚠️ <strong>Valor mínimo da entrega: R$ 7,00</strong>
     </div>
     
     <label style="font-weight:bold;">Endereço de entrega:</label>
@@ -140,6 +143,29 @@ const db = firebase.firestore();
 
 let usuarioTipo = null;
 let usuarioId = null;
+let ultimoPedidoDisponivel = null;
+let ultimoStatusAceito = {};
+let listenerPedidos = null;
+let listenerMeusPedidos = null;
+
+// 🔊 Função para tocar som
+function tocarSomAviso() {
+  try {
+    const som = new Audio('https://assets.mixkit.co/sfx/preview/mixkit-software-interface-start-2574.mp3');
+    som.volume = 0.5;
+    som.play().catch(e => console.log('Clique na tela primeiro para ativar o som'));
+  } catch (e) {
+    console.log('Som indisponível:', e);
+  }
+}
+
+// 🔔 Mostra aviso visual
+function mostrarAlerta(texto) {
+  const alerta = document.getElementById('alertaNotificacao');
+  alerta.textContent = '🔔 ' + texto;
+  alerta.style.display = 'block';
+  setTimeout(() => { alerta.style.display = 'none'; }, 4000);
+}
 
 function mostrarPagina(id) {
   ['paginaLogin', 'paginaCadastro', 'painelRestaurante', 'painelMotoboy'].forEach(p => {
@@ -200,9 +226,17 @@ async function fazerLogin() {
     const doc = await db.collection('usuarios').doc(usuarioId).get();
     if (doc.exists) {
       usuarioTipo = doc.data().Tipo;
-      usuarioTipo === 'restaurante' ? mostrarPagina('painelRestaurante') : mostrarPagina('painelMotoboy');
-      if (usuarioTipo === 'restaurante') carregarMeusPedidos();
-      else carregarPedidosDisponiveis();
+      
+      if (listenerPedidos) listenerPedidos();
+      if (listenerMeusPedidos) listenerMeusPedidos();
+      
+      if (usuarioTipo === 'restaurante') {
+        mostrarPagina('painelRestaurante');
+        ativarListenerMeusPedidos();
+      } else {
+        mostrarPagina('painelMotoboy');
+        ativarListenerPedidosDisponiveis();
+      }
     }
   } catch (e) {
     alert('❌ Erro: ' + e.message);
@@ -210,9 +244,13 @@ async function fazerLogin() {
 }
 
 function sair() {
+  if (listenerPedidos) listenerPedidos();
+  if (listenerMeusPedidos) listenerMeusPedidos();
   auth.signOut();
   usuarioTipo = null;
   usuarioId = null;
+  ultimoPedidoDisponivel = null;
+  ultimoStatusAceito = {};
   mostrarPagina('paginaLogin');
   document.getElementById('email').value = '';
   document.getElementById('senha').value = '';
@@ -261,90 +299,65 @@ async function criarPedido() {
     taxaDono: taxa,
     valorMotoboy: motoboy,
     usuarioId: usuarioId,
-    status: 'aguardando-pix',
+    status: 'disponivel',
     data: new Date().toISOString()
   });
 
-  alert('✅ Pedido enviado! Aguarde a confirmação do PIX.');
+  alert('✅ Pedido enviado! Aguardando motoboy...');
   document.getElementById('endereco').value = '';
   document.getElementById('valorTotal').value = '';
   document.getElementById('resumoDiv').style.display = 'none';
-  carregarMeusPedidos();
 }
 
-async function carregarMeusPedidos() {
-  const snap = await db.collection('pedidos')
-    .where('usuarioId', '==', usuarioId)
-    .orderBy('data', 'desc')
-    .limit(15)
-    .get();
-
-  document.getElementById('listaMeusPedidos').innerHTML = snap.empty
-    ? '<p style="text-align:center; color:#888; padding:15px;">Nenhum pedido ainda.</p>'
-    : snap.docs.map(doc => {
-        const p = doc.data();
-        const statusInfo = {
-          'aguardando-pix': { texto: '⏳ Aguardando PIX', classe: 'status-pix' },
-          'disponivel': { texto: '🏍️ Disponível', classe: 'status-disponivel' },
-          'aceito': { texto: '🚛 Pedido Aceito', classe: 'status-aceito' },
-          'concluido': { texto: '✅ Concluído', classe: 'status-aceito' }
-        }[p.status] || { texto: p.status, classe: '' };
-        return `
-          <div class="pedido-card">
-            <strong>${p.endereco}</strong><br>
-            Valor: R$ ${p.valorTotal.toFixed(2)}<br>
-            <span class="status-tag ${statusInfo.classe}">${statusInfo.texto}</span>
-          </div>
-        `;
-      }).join('');
-}
-
-async function carregarPedidosDisponiveis() {
-  const snap = await db.collection('pedidos')
+// 🔄 Atualiza em TEMPO REAL — Motoboy: novos pedidos disponíveis
+function ativarListenerPedidosDisponiveis() {
+  listenerPedidos = db.collection('pedidos')
     .where('status', '==', 'disponivel')
     .orderBy('data', 'desc')
     .limit(20)
-    .get();
-
-  document.getElementById('listaPedidos').innerHTML = snap.empty
-    ? '<p style="text-align:center; color:#888; padding:15px;">Nenhum pedido disponível no momento.<br>Volte mais tarde!</p>'
-    : snap.docs.map(doc => {
-        const p = doc.data();
-        return `
-          <div class="pedido-card">
-            <strong>${p.endereco}</strong><br>
-            💰 Total: R$ ${p.valorTotal.toFixed(2)}<br>
-            🏍️ Você recebe: <strong style="color:#16a34a; font-size:17px;">R$ ${p.valorMotoboy.toFixed(2)}</strong><br>
-            <button class="btn-success" style="margin-top:10px;" onclick="aceitarPedido('${doc.id}')">✅ Aceitar Pedido</button>
-          </div>
-        `;
-      }).join('');
+    .onSnapshot(snap => {
+      if (!snap.empty) {
+        const ultimoDoc = snap.docs[0];
+        if (ultimoPedidoDisponivel !== ultimoDoc.id) {
+          ultimoPedidoDisponivel = ultimoDoc.id;
+          tocarSomAviso();
+          mostrarAlerta('🚨 NOVO PEDIDO DISPONÍVEL!');
+        }
+      }
+      
+      document.getElementById('listaPedidos').innerHTML = snap.empty
+        ? '<p style="text-align:center; color:#888; padding:15px;">Nenhum pedido disponível no momento.<br>Volte mais tarde!</p>'
+        : snap.docs.map(doc => {
+            const p = doc.data();
+            return `
+              <div class="pedido-card">
+                <strong>${p.endereco}</strong><br>
+                💰 Total: R$ ${p.valorTotal.toFixed(2)}<br>
+                🏍️ Você recebe: <strong style="color:#16a34a; font-size:17px;">R$ ${p.valorMotoboy.toFixed(2)}</strong><br>
+                <button class="btn-success" style="margin-top:10px;" onclick="aceitarPedido('${doc.id}')">✅ Aceitar Pedido</button>
+              </div>
+            `;
+          }).join('');
+    });
 }
 
-async function aceitarPedido(id) {
-  if (!confirm('Tem certeza que deseja aceitar este pedido?')) return;
-  await db.collection('pedidos').doc(id).update({
-    status: 'aceito',
-    motoboyId: usuarioId,
-    aceitoEm: new Date().toISOString()
-  });
-  alert('✅ Pedido aceito! Entre em contato com o restaurante.');
-  carregarPedidosDisponiveis();
-}
-
-// Verifica se já está logado
-auth.onAuthStateChanged(async user => {
-  if (user) {
-    usuarioId = user.uid;
-    const doc = await db.collection('usuarios').doc(usuarioId).get();
-    if (doc.exists) {
-      usuarioTipo = doc.data().Tipo;
-      usuarioTipo === 'restaurante' ? mostrarPagina('painelRestaurante') : mostrarPagina('painelMotoboy');
-      if (usuarioTipo === 'restaurante') carregarMeusPedidos();
-      else carregarPedidosDisponiveis();
-    }
-  }
-});
-</script>
-</body>
-</html>
+// 🔄 Atualiza em TEMPO REAL — Restaurante: quando pedido é aceito
+function ativarListenerMeusPedidos() {
+  listenerMeusPedidos = db.collection('pedidos')
+    .where('usuarioId', '==', usuarioId)
+    .orderBy('data', 'desc')
+    .limit(15)
+    .onSnapshot(snap => {
+      snap.docs.forEach(doc => {
+        const statusAtual = doc.data().status;
+        const id = doc.id;
+        if (ultimoStatusAceito[id] !== 'aceito' && statusAtual === 'aceito') {
+          ultimoStatusAceito[id] = 'aceito';
+          tocarSomAviso();
+          mostrarAlerta('✅ Pedido ACEITO pelo motoboy!');
+        }
+        ultimoStatusAceito[id] = statusAtual;
+      });
+      
+      document.getElementById('listaMeusPedidos').innerHTML = snap.empty
+        ? '<p style
