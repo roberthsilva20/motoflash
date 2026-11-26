@@ -1,0 +1,16 @@
+{
+  "name": "Motoflash",
+  "short_name": "Motoflash",
+  "description": "Sistema de entregas rápidas",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#f59e0b",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/2972/2972185.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
