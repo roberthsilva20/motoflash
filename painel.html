@@ -359,4 +359,22 @@ async function aceitarPedido(idPedido) {
     status: 'aceito',
     uidMotoboy: usuarioAtual.uid,
     nomeMotoboy: usuarioAtual.Nome,
-    dataAceito: new Date
+    dataAceito: new Date()
+  });
+
+  alert('✅ Entrega aceita! Boa viagem! 🏍️');
+  carregarPedidosDisponiveis();
+}
+
+async function carregarMeusGanhos() {
+  const snap = await db.collection('historico')
+    .where('uidMotoboy', '==', usuarioAtual.uid)
+    .get();
+  
+  const total = snap.docs.reduce((s, d) => s + (d.data().valorMotoboy || 0), 0);
+  document.getElementById('totalGanhosMotoboy').textContent = `R$ ${total.toFixed(2)}`;
+}
+</script>
+</body>
+</html>
+
