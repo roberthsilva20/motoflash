@@ -18,6 +18,7 @@
     h2 { font-size: 20px; margin-bottom: 20px; text-align: center; color: #222; }
     input, textarea { width: 100%; padding: 14px; margin: 8px 0; border: 1px solid #ddd; border-radius: 8px; font-size: 16px; }
     button { width: 100%; padding: 14px; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; transition: opacity 0.2s; }
+    button:active { opacity: 0.8; }
     button:disabled { opacity: 0.6; cursor: not-allowed; }
     .btn-primary { background: #f59e0b; color: white; margin-top: 10px; }
     .btn-secondary { background: #eee; color: #333; margin-top: 8px; }
@@ -28,16 +29,12 @@
     .pix-box { background: #ecfdf3; border: 2px solid #16a34a; border-radius: 8px; padding: 15px; margin: 15px 0; text-align: center; }
     .aviso { background: #fffbeb; border-left: 4px solid #f59e0b; padding: 12px; margin: 12px 0; font-size: 14px; border-radius: 0 6px 6px 0; }
     .pedido-card { border: 1px solid #eee; border-radius: 8px; padding: 15px; margin-bottom: 12px; }
-    .status-tag { display: inline-block; padding: 4px 10px; border-radius: 12px; font-size: 13px; font-weight: bold; }
-    .status-pix { background: #fef3c7; color: #92400e; }
-    .status-disponivel { background: #dbeafe; color: #1e40af; }
-    .status-aceito { background: #d1fae5; color: #065f46; }
     .hidden { display: none !important; }
     .resumo { background: #f9fafb; padding: 12px; border-radius: 6px; margin-top: 10px; font-size: 15px; line-height: 1.6; }
     .erro { color: #dc2626; font-size: 14px; margin-top: 5px; display: none; }
     .sair-btn { background: transparent; color: #888; border: none; font-size: 14px; text-align: right; cursor: pointer; width: auto; }
-    .alerta-som { position: fixed; top: 0; left: 0; right: 0; background: #16a34a; color: white; padding: 12px; text-align: center; font-weight: bold; z-index: 9999; display: none; animation: pulse 1s infinite; }
-    @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.8; } 100% { opacity: 1; } }
+    .alerta-som { position: fixed; top: 0; left: 0; right: 0; background: #16a34a; color: white; padding: 12px; text-align: center; font-weight: bold; z-index: 9999; display: none; }
+    .carregando { text-align: center; padding: 10px; color: #666; display: none; }
   </style>
 </head>
 <body>
@@ -51,10 +48,11 @@
 <div class="container" id="paginaLogin">
   <div class="card">
     <h2>Bem-vindo!</h2>
+    <div id="carregandoLogin" class="carregando">Conectando...</div>
     <input type="email" id="email" placeholder="Seu e-mail">
     <input type="password" id="senha" placeholder="Sua senha">
-    <button class="btn-primary" onclick="fazerLogin()">Entrar</button>
-    <button class="btn-secondary" onclick="mostrarCadastro()">Criar conta</button>
+    <button class="btn-primary" id="btnEntrar">Entrar</button>
+    <button class="btn-secondary" id="btnIrCadastro">Criar conta</button>
     <p style="text-align:center; margin-top:15px; font-size:14px; color:#888;">
       Não precisa de cadastro de Dono — isso é controlado pelo administrador.
     </p>
@@ -70,18 +68,18 @@
     
     <p style="margin-top:15px; font-weight:bold;">Eu sou:</p>
     <div class="tipo-row">
-      <button class="tipo-btn" id="btnRestaurante" onclick="escolherTipo('restaurante')">🍽️ Restaurante</button>
-      <button class="tipo-btn" id="btnMotoboy" onclick="escolherTipo('motoboy')">🏍️ Motoboy</button>
+      <button class="tipo-btn" id="btnRestaurante">🍽️ Restaurante</button>
+      <button class="tipo-btn" id="btnMotoboy">🏍️ Motoboy</button>
     </div>
     
-    <button class="btn-primary" onclick="criarConta()">Criar minha conta</button>
-    <button class="btn-secondary" onclick="voltarLogin()">Voltar</button>
+    <button class="btn-primary" id="btnCriarConta">Criar minha conta</button>
+    <button class="btn-secondary" id="btnVoltarLogin">Voltar</button>
   </div>
 </div>
 
 <div class="container hidden" id="painelRestaurante">
   <div style="text-align:right; margin-bottom:10px;">
-    <button class="sair-btn" onclick="sair()">Sair ↪</button>
+    <button class="sair-btn" id="btnSairRestaurante">Sair ↪</button>
   </div>
   <div class="card">
     <h2>🍽️ Novo Pedido de Entrega</h2>
@@ -94,7 +92,7 @@
     <textarea id="endereco" placeholder="Rua, número, bairro, referência..." rows="2"></textarea>
     
     <label style="font-weight:bold;">Valor total da entrega (R$):</label>
-    <input type="number" id="valorTotal" placeholder="Mínimo R$ 7,00" min="7" step="0.01" oninput="atualizarResumo()">
+    <input type="number" id="valorTotal" placeholder="Mínimo R$ 7,00" min="7" step="0.01">
     <div id="erroValor" class="erro">❌ Valor mínimo é R$ 7,00</div>
     
     <div class="resumo" id="resumoDiv" style="display:none;">
@@ -109,7 +107,7 @@
       <small>CNPJ — Motoflash Serviços de Entrega</small>
     </div>
     
-    <button class="btn-primary" id="btnEnviar" onclick="criarPedido()">📤 Enviar Pedido</button>
+    <button class="btn-primary" id="btnEnviarPedido">📤 Enviar Pedido</button>
   </div>
   
   <div class="card">
@@ -120,7 +118,7 @@
 
 <div class="container hidden" id="painelMotoboy">
   <div style="text-align:right; margin-bottom:10px;">
-    <button class="sair-btn" onclick="sair()">Sair ↪</button>
+    <button class="sair-btn" id="btnSairMotoboy">Sair ↪</button>
   </div>
   <div class="card">
     <h2>🏍️ Pedidos Disponíveis</h2>
@@ -148,13 +146,14 @@ let ultimoStatusAceito = {};
 let listenerPedidos = null;
 let listenerMeusPedidos = null;
 
+// Funções auxiliares
 function tocarSomAviso() {
   try {
     const som = new Audio('https://assets.mixkit.co/sfx/preview/mixkit-software-interface-start-2574.mp3');
     som.volume = 0.5;
     som.play().catch(e => console.log('Clique na tela primeiro para ativar o som'));
   } catch (e) {
-    console.log('Som indisponível:', e);
+    console.log('Som indisponível');
   }
 }
 
@@ -172,15 +171,11 @@ function mostrarPagina(id) {
   document.getElementById(id).classList.remove('hidden');
 }
 
-function mostrarCadastro() {
-  mostrarPagina('paginaCadastro');
+function voltarLogin() {
+  mostrarPagina('paginaLogin');
   usuarioTipo = null;
   document.getElementById('btnRestaurante').classList.remove('active');
   document.getElementById('btnMotoboy').classList.remove('active');
-}
-
-function voltarLogin() {
-  mostrarPagina('paginaLogin');
 }
 
 function escolherTipo(tipo) {
@@ -189,6 +184,7 @@ function escolherTipo(tipo) {
   document.getElementById('btnMotoboy').classList.toggle('active', tipo === 'motoboy');
 }
 
+// Funções principais
 async function criarConta() {
   const nome = document.getElementById('nomeCompleto').value.trim();
   const email = document.getElementById('cadEmail').value.trim();
@@ -207,7 +203,7 @@ async function criarConta() {
       DataCadastro: new Date().toISOString()
     });
     alert('✅ Conta criada com sucesso!');
-    mostrarPagina('paginaLogin');
+    voltarLogin();
   } catch (e) {
     alert('❌ Erro: ' + e.message);
   }
@@ -259,7 +255,7 @@ function atualizarResumo() {
   const valor = parseFloat(valorInput.value);
   const resumoDiv = document.getElementById('resumoDiv');
   const erroDiv = document.getElementById('erroValor');
-  const btn = document.getElementById('btnEnviar');
+  const btn = document.getElementById('btnEnviarPedido');
 
   if (valor && valor >= 7) {
     const taxa = valor * 0.20;
@@ -307,6 +303,15 @@ async function criarPedido() {
   document.getElementById('resumoDiv').style.display = 'none';
 }
 
+async function aceitarPedido(idPedido) {
+  await db.collection('pedidos').doc(idPedido).update({
+    status: 'aceito',
+    motoboyId: usuarioId,
+    dataAceito: new Date().toISOString()
+  });
+  alert('✅ Pedido aceito! Boa entrega! 🏍️💨');
+}
+
 function ativarListenerPedidosDisponiveis() {
   listenerPedidos = db.collection('pedidos')
     .where('status', '==', 'disponivel')
@@ -338,15 +343,6 @@ function ativarListenerPedidosDisponiveis() {
     });
 }
 
-window.aceitarPedido = async function(idPedido) {
-  await db.collection('pedidos').doc(idPedido).update({
-    status: 'aceito',
-    motoboyId: usuarioId,
-    dataAceito: new Date().toISOString()
-  });
-  alert('✅ Pedido aceito! Boa entrega! 🏍️💨');
-};
-
 function ativarListenerMeusPedidos() {
   listenerMeusPedidos = db.collection('pedidos')
     .where('usuarioId', '==', usuarioId)
@@ -361,4 +357,17 @@ function ativarListenerMeusPedidos() {
           tocarSomAviso();
           mostrarAlerta('✅ Pedido ACEITO pelo motoboy!');
         }
-        ultimoStatusAceito
+        ultimoStatusAceito[id] = statusAtual;
+      });
+      
+      document.getElementById('listaMeusPedidos').innerHTML = snap.empty
+        ? '<p style="text-align:center; color:#888; padding:15px;">Você ainda não tem pedidos enviados.</p>'
+        : snap.docs.map(doc => {
+            const p = doc.data();
+            const statusText = {
+              'disponivel': '🟡 Disponível',
+              'aceito': '✅ Aceito'
+            }[p.status] || p.status;
+            return `
+              <div class="pedido-card">
+                <strong>${p.end
