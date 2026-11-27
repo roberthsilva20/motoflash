@@ -16,9 +16,9 @@
     .pedido h3 { font-size: 16px; margin-bottom: 10px; color: #222; }
     .pedido p { margin-bottom: 6px; color: #444; font-size: 14px; }
     .btn { background: #22c55e; color: white; border: none; padding: 10px 15px; border-radius: 6px; cursor: pointer; font-weight: bold; width: 100%; font-size: 15px; margin-top: 8px; }
-    .btn:hover { background: #16a34a; }
     .sair { background: #666; color: white; border: none; padding: 8px 15px; border-radius: 6px; cursor: pointer; margin-bottom: 15px; }
     .sem-dados { color: #666; font-style: italic; text-align: center; padding: 40px 20px; }
+    .erro { color: #dc2626; background: #fee2e2; padding: 15px; border-radius: 6px; text-align: center; margin: 15px 0; }
   </style>
 </head>
 <body>
@@ -32,9 +32,8 @@
     💡 Apenas pedidos com PIX confirmado aparecem aqui. Clique para aceitar!
   </div>
 
-  <div id="lista-pedidos">
-    <p class="sem-dados">Carregando...</p>
-  </div>
+  <div id="mensagem"></div>
+  <div id="lista-pedidos"><p class="sem-dados">Carregando...</p></div>
 
   <script>
     const firebaseConfig = {
@@ -55,47 +54,65 @@
     }
 
     auth.onAuthStateChanged(user => {
+      const mensagem = document.getElementById("mensagem");
+      const lista = document.getElementById("lista-pedidos");
+      
       if (!user) {
-        document.getElementById("lista-pedidos").innerHTML = 
-          '<p class="sem-dados">Faça login para ver os pedidos.</p>';
+        lista.innerHTML = '<p class="sem-dados">Faça login para ver os pedidos.</p>';
         return;
       }
+      
+      mensagem.innerHTML = `<div style="background:#dcfce7;padding:10px;border-radius:6px;margin-bottom:15px;">✅ Logado como: ${user.email}</div>`;
       carregarPedidos();
     });
 
     function carregarPedidos() {
-      db.collection("pedidos")
-        .where("status", "==", "confirmado")
-        .orderBy("data", "desc")
-        .onSnapshot(snapshot => {
-          const lista = document.getElementById("lista-pedidos");
+      const mensagem = document.getElementById("mensagem");
+      const lista = document.getElementById("lista-pedidos");
+      
+      console.log("Buscando pedidos...");
+      
+      db.collection("pedidos").get()
+        .then(snapshot => {
+          console.log("Total de pedidos no banco:", snapshot.size);
           lista.innerHTML = "";
-
+          
           if (snapshot.empty) {
-            lista.innerHTML = '<p class="sem-dados">Nenhum pedido disponível no momento.<br>Volte mais tarde!</p>';
+            lista.innerHTML = '<p class="sem-dados">Nenhum pedido cadastrado ainda.</p>';
             return;
           }
 
+          let temDisponivel = false;
+          
           snapshot.forEach(doc => {
             const p = doc.data();
-            const id = doc.id;
-            const data = p.data ? new Date(p.data.toDate()).toLocaleString('pt-BR') : "Sem data";
-
-            lista.innerHTML += `
-              <div class="pedido">
-                <h3>📍 ${p.restaurante || "Restaurante"}</h3>
-                <p><strong>Endereço:</strong> ${p.endereco || "Não informado"}</p>
-                <p><strong>Valor total:</strong> R$ ${(p.valorTotal || 0).toFixed(2).replace('.', ',')}</p>
-                <p><strong>Sua parte:</strong> R$ ${(p.valorMoto || 0).toFixed(2).replace('.', ',')}</p>
-                <p><strong>Data:</strong> ${data}</p>
-                <button class="btn" onclick="aceitarPedido('${id}')">✅ Aceitar Entrega</button>
-              </div>
-            `;
+            console.log("Pedido:", doc.id, "Status:", p.status, "Motoboy:", p.motoboyId);
+            
+            if (p.status === "confirmado" && !p.motoboyId) {
+              temDisponivel = true;
+              const data = p.data ? new Date(p.data.toDate()).toLocaleString('pt-BR') : "Sem data";
+              
+              lista.innerHTML += `
+                <div class="pedido">
+                  <h3>📍 ${p.restaurante || "Restaurante"}</h3>
+                  <p><strong>Endereço:</strong> ${p.endereco || "Não informado"}</p>
+                  <p><strong>Valor total:</strong> R$ ${(p.valorTotal || 0).toFixed(2).replace('.', ',')}</p>
+                  <p><strong>Sua parte:</strong> R$ ${(p.valorMoto || 0).toFixed(2).replace('.', ',')}</p>
+                  <p><strong>Data:</strong> ${data}</p>
+                  <button class="btn" onclick="aceitarPedido('${doc.id}')">✅ Aceitar Entrega</button>
+                </div>
+              `;
+            }
           });
-        }, erro => {
-          console.error("Erro:", erro);
-          document.getElementById("lista-pedidos").innerHTML = 
-            '<p class="sem-dados" style="color:red">Erro ao carregar. Atualize a página.</p>';
+
+          if (!temDisponivel) {
+            lista.innerHTML = '<p class="sem-dados">Nenhum pedido disponível no momento.<br>Volte mais tarde!</p>';
+          }
+        })
+        .catch(erro => {
+          console.error("ERRO:", erro);
+          mensagem.innerHTML = `<div class="erro">❌ Erro: ${erro.message}</div>`;
+          lista.innerHTML = '<p class="sem-dados">Não foi possível carregar os pedidos.</p>';
         });
     }
 
@@ -107,7 +124,10 @@
           motoboyNome: auth.currentUser.displayName || "Motoboy",
           dataAceite: firebase.firestore.FieldValue.serverTimestamp()
         })
-        .then(() => alert("✅ Pedido aceito! Boa entrega! 🏍️"))
+        .then(() => {
+          alert("✅ Pedido aceito! Boa entrega! 🏍️");
+          carregarPedidos();
+        })
         .catch(err => alert("❌ Erro: " + err.message));
       }
     }
