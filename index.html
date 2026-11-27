@@ -3,362 +3,198 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Motoflash</title>
+  <title>Motoflash — Login</title>
   <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore-compat.js"></script>
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: Arial, sans-serif; }
-    body { background: #f4f4f4; min-height: 100vh; padding: 20px; }
-    .center-page { display: flex; align-items: center; justify-content: center; min-height: 100vh; }
-    .card { background: white; border-radius: 12px; padding: 30px; width: 100%; max-width: 420px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
-    h1 { text-align: center; margin-bottom: 25px; color: #222; font-size: 24px; }
-    h2 { text-align: center; margin-bottom: 20px; color: #222; font-size: 20px; }
-    h3 { margin-bottom: 15px; color: #333; }
-    input, textarea { width: 100%; padding: 14px; margin: 8px 0; border: 1px solid #ddd; border-radius: 8px; font-size: 16px; }
-    button { width: 100%; padding: 14px; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; margin: 6px 0; }
-    button:active { opacity: 0.8; }
-    .laranja { background: #f59e0b; color: white; }
-    .cinza { background: #eee; color: #333; }
-    .verde { background: #16a34a; color: white; }
-    .azul { background: #3b82f6; color: white; }
-    .vermelho { background: #ef4444; color: white; }
-    .divisor { text-align: center; margin: 20px 0; color: #888; }
-    .tela { display: none; max-width: 420px; margin: 0 auto; }
-    .tela.ativa { display: block; }
-    .grupo-botoes { display: flex; gap: 10px; margin: 15px 0; }
-    .grupo-botoes button { flex: 1; }
-    .grupo-botoes button.ativo { border: 2px solid #f59e0b; background: #fff8eb; color: #b45309; }
-    .aviso { background: #fffbeb; border-left: 4px solid #f59e0b; padding: 12px; margin: 12px 0; border-radius: 0 6px 6px 0; font-size: 15px; color: #854d0e; font-weight: 500; }
-    .aviso-info { background: #e0f2fe; border-left: 4px solid #0284c7; padding: 12px; margin: 12px 0; border-radius: 0 6px 6px 0; font-size: 14px; color: #075985; }
-    .pix-box { background: #ecfdf3; border: 2px solid #16a34a; border-radius: 8px; padding: 15px; margin: 15px 0; text-align: center; }
-    .pix-codigo { background: #e5e7eb; padding: 8px 12px; border-radius: 4px; display: inline-block; margin: 8px 0; font-family: monospace; font-size: 16px; }
-    .pedido { background: white; padding: 15px; border-radius: 8px; margin: 10px 0; border-left: 4px solid #ddd; }
-    .sair { background: none; color: #666; text-align: right; width: auto; margin: 0 0 15px auto; padding: 0; font-size: 15px; }
-    .titulo-pagina { font-size: 22px; text-align: center; margin-bottom: 20px; color: #222; }
-    .status-tag { display: inline-block; padding: 4px 10px; border-radius: 20px; font-size: 13px; font-weight: bold; }
-    .status-pendente { background: #fef3c7; color: #92400e; }
-    .status-disponivel { background: #d1fae5; color: #065f46; }
-    .status-aceito { background: #dbeafe; color: #1e40af; }
-    .status-entregue { background: #e5e7eb; color: #4b5563; }
-    .carregando { text-align: center; padding: 30px; color: #666; }
+    * { margin: 0; padding: 0; box-sizing: border-box; font-family: Arial, sans-serif; }
+    body { background: linear-gradient(135deg, #1a1a1a, #333); min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
+    .container { background: white; padding: 30px 20px; border-radius: 16px; width: 100%; max-width: 400px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
+    h1 { text-align: center; color: #222; margin-bottom: 30px; font-size: 22px; }
+    .aba { display: flex; margin-bottom: 20px; border-bottom: 2px solid #eee; }
+    .aba-btn { flex: 1; padding: 12px; border: none; background: none; font-size: 16px; cursor: pointer; color: #888; }
+    .aba-btn.ativo { color: #22c55e; border-bottom: 2px solid #22c55e; margin-bottom: -2px; }
+    input { width: 100%; padding: 14px; margin-bottom: 15px; border: 1px solid #ddd; border-radius: 8px; font-size: 16px; outline: none; }
+    input:focus { border-color: #22c55e; }
+    select { width: 100%; padding: 14px; margin-bottom: 15px; border: 1px solid #ddd; border-radius: 8px; font-size: 16px; background: white; }
+    button.entrar { width: 100%; padding: 14px; background: #22c55e; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 10px; }
+    button.entrar:hover { background: #16a34a; }
+    button.entrar:disabled { background: #999; cursor: not-allowed; }
+    .mensagem { margin-top: 15px; text-align: center; font-size: 14px; min-height: 20px; }
+    .erro { color: #ef4444; }
+    .sucesso { color: #22c55e; }
+    .oculto { display: none !important; }
   </style>
 </head>
 <body>
-
-<!-- TELA DE LOGIN -->
-<div id="telaLogin" class="tela ativa center-page">
-  <div class="card">
+  <div class="container">
     <h1>🏍️ Motoflash</h1>
-    <div id="mensagemErro" style="color:red; display:none; text-align:center; margin-bottom:10px;"></div>
-    <input type="email" id="email" placeholder="Seu e-mail">
-    <input type="password" id="senha" placeholder="Sua senha">
-    <button class="laranja" onclick="entrar()">Entrar</button>
-    <div class="divisor">ou</div>
-    <button class="cinza" onclick="irCadastro()">Criar conta nova</button>
-  </div>
-</div>
 
-<!-- TELA DE CADASTRO -->
-<div id="telaCadastro" class="tela center-page">
-  <div class="card">
-    <h2>Criar Conta</h2>
-    <div id="mensagemCadastro" style="color:red; display:none; text-align:center; margin-bottom:10px;"></div>
-    <input type="text" id="nomeCompleto" placeholder="Seu nome completo">
-    <input type="email" id="cadEmail" placeholder="Seu e-mail">
-    <input type="password" id="cadSenha" placeholder="Crie uma senha (mínimo 6 dígitos)">
-    <p style="text-align:center; margin:10px 0; font-weight:bold;">Eu sou:</p>
-    <div class="grupo-botoes">
-      <button id="btnRest" class="cinza" onclick="escolherPerfil('restaurante')">🍽️ Restaurante</button>
-      <button id="btnMoto" class="cinza" onclick="escolherPerfil('motoboy')">🏍️ Motoboy</button>
+    <div class="aba">
+      <button class="aba-btn ativo" id="btn-login" onclick="mostrarAba('login')">Entrar</button>
+      <button class="aba-btn" id="btn-cadastro" onclick="mostrarAba('cadastro')">Criar Conta</button>
     </div>
-    <button class="laranja" onclick="criarConta()">Criar minha conta</button>
-    <button class="cinza" onclick="voltarLogin()">Voltar</button>
-  </div>
-</div>
 
-<!-- TELA RESTAURANTE -->
-<div id="telaRestaurante" class="tela">
-  <button class="sair" onclick="sair()">← Sair</button>
-  <h2 class="titulo-pagina">🍽️ Painel do Restaurante</h2>
-  <div class="card">
-    <div class="aviso">⚠️ Valor mínimo da entrega: R$ 7,00</div>
-    <label style="font-weight:bold; display:block; margin-top:10px;">Endereço de entrega:</label>
-    <textarea id="endereco" placeholder="Rua, número, bairro..." rows="3"></textarea>
-    <label style="font-weight:bold; display:block; margin-top:10px;">Valor da entrega (R$):</label>
-    <input type="number" id="valor" placeholder="Mínimo R$ 7,00" min="7" step="0.01">
-    
-    <div class="pix-box">
-      <strong>💵 Chave PIX para pagamento:</strong>
-      <div class="pix-codigo">35.377.564/0001-22</div>
-      <small>CNPJ — Motoflash Serviços de Entrega</small>
+    <!-- Área de Login -->
+    <div id="area-login">
+      <input type="email" id="email-login" placeholder="Seu e-mail">
+      <input type="password" id="senha-login" placeholder="Sua senha">
+      <button class="entrar" id="btn-entrar" onclick="fazerLogin()">Entrar</button>
+      <div id="msg-login" class="mensagem"></div>
     </div>
-    
-    <div class="aviso-info">
-      ℹ️ Após fazer o PIX, clique em "Já fiz o PIX". Seu pedido será liberado assim que confirmarmos!
+
+    <!-- Área de Cadastro -->
+    <div id="area-cadastro" class="oculto">
+      <input type="text" id="nome-cadastro" placeholder="Seu nome completo">
+      <input type="email" id="email-cadastro" placeholder="Seu e-mail">
+      <input type="password" id="senha-cadastro" placeholder="Crie uma senha (mínimo 6 dígitos)">
+      <select id="tipo-cadastro">
+        <option value="">Você é...</option>
+        <option value="restaurante">🍽️ Restaurante</option>
+        <option value="motoboy">🏍️ Motoboy</option>
+      </select>
+      <button class="entrar" id="btn-cadastrar" onclick="fazerCadastro()">Criar Conta</button>
+      <div id="msg-cadastro" class="mensagem"></div>
     </div>
-    
-    <button class="verde" onclick="enviarPedido()">✅ Já fiz o PIX — Enviar Pedido</button>
   </div>
-  <div class="card">
-    <h3>📋 Meus Pedidos</h3>
-    <div id="listaMeus"><p class="carregando">Carregando...</p></div>
-  </div>
-</div>
 
-<!-- TELA MOTOBOY -->
-<div id="telaMotoboy" class="tela">
-  <button class="sair" onclick="sair()">← Sair</button>
-  <h2 class="titulo-pagina">🏍️ Pedidos Disponíveis</h2>
-  <div class="aviso-info">
-    ⏳ Apenas pedidos com PIX confirmado aparecem aqui.
-  </div>
-  <div id="listaPedidos"><p class="carregando">Carregando...</p></div>
-</div>
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyBD9qiDcnYQJDGn850KUkMpiBatuP0DWT8",
+      authDomain: "motoflash-b1396.firebaseapp.com",
+      projectId: "motoflash-b1396",
+      storageBucket: "motoflash-b1396.firebasestorage.app",
+      messagingSenderId: "709365607477",
+      appId: "1:709365607477:web:5a83bf82fafef1ca9e957c"
+    };
 
-<script>
-const firebaseConfig = {
-  apiKey: "AIzaSyBD9qiDcnYQJDGn850KUkMpiBatuP0DWT8",
-  authDomain: "motoflash-b1396.firebaseapp.com",
-  projectId: "motoflash-b1396",
-  storageBucket: "motoflash-b1396.firebasestorage.app",
-  messagingSenderId: "709365607477",
-  appId: "1:709365607477:web:5a83bf82fafef1ca9e957c"
-};
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
 
-firebase.initializeApp(firebaseConfig);
-const auth = firebase.auth();
-const db = firebase.firestore();
-
-let perfilEscolhido = null;
-let usuarioAtual = null;
-let unsubscribePedidos = null;
-let unsubscribeMeusPedidos = null;
-
-function mostrarTela(id) {
-  document.querySelectorAll('.tela').forEach(t => t.classList.remove('ativa'));
-  document.getElementById(id).classList.add('ativa');
-}
-
-function mostrarMensagem(elementoId, texto, isErro = true) {
-  const el = document.getElementById(elementoId);
-  el.textContent = texto;
-  el.style.color = isErro ? 'red' : 'green';
-  el.style.display = 'block';
-  setTimeout(() => el.style.display = 'none', 4000);
-}
-
-function irCadastro() {
-  mostrarTela('telaCadastro');
-  perfilEscolhido = null;
-  document.getElementById('btnRest').classList.remove('ativo');
-  document.getElementById('btnMoto').classList.remove('ativo');
-}
-
-function voltarLogin() {
-  mostrarTela('telaLogin');
-  perfilEscolhido = null;
-}
-
-function escolherPerfil(tipo) {
-  perfilEscolhido = tipo;
-  document.getElementById('btnRest').classList.toggle('ativo', tipo === 'restaurante');
-  document.getElementById('btnMoto').classList.toggle('ativo', tipo === 'motoboy');
-}
-
-async function criarConta() {
-  const nome = document.getElementById('nomeCompleto').value.trim();
-  const email = document.getElementById('cadEmail').value.trim();
-  const senha = document.getElementById('cadSenha').value;
-  
-  if (!nome || !email || !senha || !perfilEscolhido) {
-    mostrarMensagem('mensagemCadastro', 'Preencha tudo e escolha seu perfil!');
-    return;
-  }
-  if (senha.length < 6) {
-    mostrarMensagem('mensagemCadastro', 'Senha precisa ter pelo menos 6 dígitos!');
-    return;
-  }
-  
-  try {
-    const credencial = await auth.createUserWithEmailAndPassword(email, senha);
-    await db.collection('usuarios').doc(credencial.user.uid).set({
-      nome: nome,
-      email: email,
-      perfil: perfilEscolhido,
-      ativo: true
-    });
-    alert('✅ Conta criada com sucesso! Bem-vindo, ' + nome + '!');
-  } catch (erro) {
-    mostrarMensagem('mensagemCadastro', 'Erro: ' + erro.message);
-  }
-}
-
-async function entrar() {
-  const email = document.getElementById('email').value.trim();
-  const senha = document.getElementById('senha').value;
-  
-  if (!email || !senha) {
-    mostrarMensagem('mensagemErro', 'Preencha e-mail e senha!');
-    return;
-  }
-  
-  try {
-    await auth.signInWithEmailAndPassword(email, senha);
-  } catch (erro) {
-    mostrarMensagem('mensagemErro', 'Erro ao entrar: ' + erro.message);
-  }
-}
-
-function sair() {
-  if (unsubscribePedidos) unsubscribePedidos();
-  if (unsubscribeMeusPedidos) unsubscribeMeusPedidos();
-  auth.signOut();
-  usuarioAtual = null;
-  mostrarTela('telaLogin');
-  document.getElementById('email').value = '';
-  document.getElementById('senha').value = '';
-  document.getElementById('nomeCompleto').value = '';
-  document.getElementById('cadEmail').value = '';
-  document.getElementById('cadSenha').value = '';
-}
-
-async function enviarPedido() {
-  const endereco = document.getElementById('endereco').value.trim();
-  const valor = parseFloat(document.getElementById('valor').value);
-  
-  if (!endereco) { alert('Digite o endereço de entrega!'); return; }
-  if (!valor || valor < 7) { alert('Valor mínimo é R$ 7,00!'); return; }
-  
-  const taxa = valor * 0.20;
-  const valorMoto = valor - taxa;
-  
-  try {
-    await db.collection('pedidos').add({
-      endereco: endereco,
-      valorTotal: valor,
-      taxa: taxa,
-      valorMoto: valorMoto,
-      status: 'aguardando_pix',
-      data: new Date(),
-      restaurante: usuarioAtual.nome,
-      restauranteEmail: usuarioAtual.email,
-      restauranteId: auth.currentUser.uid
-    });
-    alert('✅ Pedido enviado! Aguardando confirmação do PIX pelo dono.');
-    document.getElementById('endereco').value = '';
-    document.getElementById('valor').value = '';
-  } catch (erro) {
-    alert('Erro ao enviar: ' + erro.message);
-  }
-}
-
-window.aceitarPedido = async function(id) {
-  try {
-    await db.collection('pedidos').doc(id).update({
-      status: 'aceito',
-      motoboy: usuarioAtual.nome,
-      motoboyEmail: usuarioAtual.email,
-      motoboyId: auth.currentUser.uid,
-      dataAceito: new Date()
-    });
-    alert('✅ Pedido aceito! Boa entrega! 🏍️💨');
-  } catch (erro) {
-    alert('Erro: ' + erro.message);
-  }
-};
-
-auth.onAuthStateChanged(async (user) => {
-  if (user) {
-    try {
-      const doc = await db.collection('usuarios').doc(user.uid).get();
-      if (doc.exists && doc.data().ativo !== false) {
-        usuarioAtual = doc.data();
-        usuarioAtual.uid = user.uid;
-        
-        if (usuarioAtual.perfil === 'restaurante') {
-          mostrarTela('telaRestaurante');
-          carregarMeusPedidos();
-        } else if (usuarioAtual.perfil === 'motoboy') {
-          mostrarTela('telaMotoboy');
-          carregarPedidosDisponiveis();
-        }
-      } else {
-        alert('❌ Usuário não encontrado ou bloqueado.');
-        auth.signOut();
-      }
-    } catch (erro) {
-      console.error('Erro ao carregar perfil:', erro);
+    function mostrarAba(nome) {
+      document.getElementById('area-login').classList.toggle('oculto', nome !== 'login');
+      document.getElementById('area-cadastro').classList.toggle('oculto', nome !== 'cadastro');
+      document.getElementById('btn-login').classList.toggle('ativo', nome === 'login');
+      document.getElementById('btn-cadastro').classList.toggle('ativo', nome === 'cadastro');
+      limparMensagens();
     }
-  } else {
-    usuarioAtual = null;
-    mostrarTela('telaLogin');
-  }
-});
 
-function carregarMeusPedidos() {
-  if (unsubscribeMeusPedidos) unsubscribeMeusPedidos();
-  unsubscribeMeusPedidos = db.collection('pedidos')
-    .where('restauranteId', '==', auth.currentUser.uid)
-    .orderBy('data', 'desc')
-    .onSnapshot(snapshot => {
-      let html = '';
-      if (snapshot.empty) {
-        html = '<p style="text-align:center; color:#888; padding:15px;">Nenhum pedido enviado ainda.</p>';
+    function limparMensagens() {
+      document.getElementById('msg-login').innerHTML = '';
+      document.getElementById('msg-cadastro').innerHTML = '';
+    }
+
+    function mostrarMensagem(elId, texto, tipo) {
+      const el = document.getElementById(elId);
+      el.innerHTML = `<span class="${tipo}">${texto}</span>`;
+    }
+
+    auth.onAuthStateChanged(user => {
+      if (user) {
+        verificarRedirecionar(user);
       }
-      snapshot.forEach(doc => {
-        const p = { id: doc.id, ...doc.data() };
-        let statusClass, statusTexto;
-        
-        if (p.status === 'aguardando_pix') {
-          statusClass = 'status-pendente';
-          statusTexto = '⏳ Aguardando confirmação do PIX';
-        } else if (p.status === 'disponivel') {
-          statusClass = 'status-disponivel';
-          statusTexto = '✅ PIX confirmado — Aguardando motoboy';
-        } else if (p.status === 'aceito') {
-          statusClass = 'status-aceito';
-          statusTexto = '🔵 Aceito por um motoboy';
-        } else {
-          statusClass = 'status-entregue';
-          statusTexto = '✅ Entregue';
+    });
+
+    async function verificarRedirecionar(user) {
+      try {
+        const doc = await db.collection('usuarios').doc(user.uid).get();
+        if (doc.exists) {
+          const dados = doc.data();
+          if (dados.tipo === 'motoboy') {
+            window.location.href = 'painel.html';
+          } else if (dados.tipo === 'restaurante') {
+            window.location.href = 'index.html'; // ← Aqui você coloca o painel do restaurante quando tiver
+          }
         }
-        
-        html += `<div class="pedido">
-          <strong>${p.endereco}</strong><br>
-          Valor total: R$ ${p.valorTotal.toFixed(2)}<br>
-          Sua taxa (20%): R$ ${p.taxa.toFixed(2)}<br>
-          Motoboy recebe: R$ ${p.valorMoto.toFixed(2)}<br>
-          <span class="status-tag ${statusClass}">${statusTexto}</span>
-        </div>`;
-      });
-      document.getElementById('listaMeusPedidos').innerHTML = html;
-    });
-}
-
-function carregarPedidosDisponiveis() {
-  if (unsubscribePedidos) unsubscribePedidos();
-  unsubscribePedidos = db.collection('pedidos')
-    .where('status', '==', 'disponivel')
-    .orderBy('data', 'desc')
-    .onSnapshot(snapshot => {
-      let html = '';
-      if (snapshot.empty) {
-        html = '<p style="text-align:center; color:#888; padding:15px;">Nenhum pedido disponível no momento.<br>Volte mais tarde!</p>';
+      } catch (e) {
+        console.log('Verificando usuário...');
       }
-      snapshot.forEach(doc => {
-        const p = { id: doc.id, ...doc.data() };
-        html += `<div class="pedido">
-          <strong>${p.endereco}</strong><br>
-          💰 Valor total: R$ ${p.valorTotal.toFixed(2)}<br>
-          🏍️ Você recebe: R$ ${p.valorMoto.toFixed(2)}<br>
-          <button class="verde" style="margin-top:10px;" onclick="aceitarPedido('${p.id}')">✅ Aceitar Pedido</button>
-        </div>`;
-      });
-      document.getElementById('listaPedidos').innerHTML = html;
-    });
-}
-</script>
+    }
 
+    async function fazerLogin() {
+      const email = document.getElementById('email-login').value.trim();
+      const senha = document.getElementById('senha-login').value;
+      const msgId = 'msg-login';
+
+      if (!email || !senha) {
+        mostrarMensagem(msgId, '⚠️ Preencha e-mail e senha', 'erro');
+        return;
+      }
+
+      try {
+        mostrarMensagem(msgId, '⏳ Entrando...', 'sucesso');
+        const userCred = await auth.signInWithEmailAndPassword(email, senha);
+        const user = userCred.user;
+        
+        const doc = await db.collection('usuarios').doc(user.uid).get();
+        if (doc.exists) {
+          const dados = doc.data();
+          if (dados.tipo === 'motoboy') {
+            window.location.href = 'painel.html';
+          } else if (dados.tipo === 'restaurante') {
+            mostrarMensagem(msgId, '✅ Entrando...', 'sucesso');
+            // window.location.href = 'painel-restaurante.html'; ← quando tiver a página do restaurante
+          }
+        }
+      } catch (erro) {
+        let texto = '❌ Erro ao entrar';
+        if (erro.code === 'auth/user-not-found') texto = '❌ Usuário não encontrado';
+        else if (erro.code === 'auth/wrong-password') texto = '❌ Senha incorreta';
+        else if (erro.code === 'auth/invalid-email') texto = '❌ E-mail inválido';
+        mostrarMensagem(msgId, texto, 'erro');
+      }
+    }
+
+    async function fazerCadastro() {
+      const nome = document.getElementById('nome-cadastro').value.trim();
+      const email = document.getElementById('email-cadastro').value.trim();
+      const senha = document.getElementById('senha-cadastro').value;
+      const tipo = document.getElementById('tipo-cadastro').value;
+      const msgId = 'msg-cadastro';
+
+      if (!nome || !email || !senha || !tipo) {
+        mostrarMensagem(msgId, '⚠️ Preencha todos os campos', 'erro');
+        return;
+      }
+      if (senha.length < 6) {
+        mostrarMensagem(msgId, '⚠️ Senha precisa de pelo menos 6 dígitos', 'erro');
+        return;
+      }
+
+      try {
+        mostrarMensagem(msgId, '⏳ Criando conta...', 'sucesso');
+        const userCred = await auth.createUserWithEmailAndPassword(email, senha);
+        const user = userCred.user;
+
+        await user.updateProfile({ displayName: nome });
+
+        await db.collection('usuarios').doc(user.uid).set({
+          nome: nome,
+          email: email,
+          tipo: tipo,
+          dataCadastro: firebase.firestore.FieldValue.serverTimestamp(),
+          ativo: true
+        });
+
+        mostrarMensagem(msgId, '✅ Conta criada! Entrando...', 'sucesso');
+        
+        setTimeout(() => {
+          if (tipo === 'motoboy') {
+            window.location.href = 'painel.html';
+          } else {
+            mostrarMensagem(msgId, '✅ Bem-vindo! Faça login abaixo', 'sucesso');
+            mostrarAba('login');
+          }
+        }, 1200);
+      } catch (erro) {
+        let texto = '❌ Erro ao criar conta';
+        if (erro.code === 'auth/email-already-in-use') texto = '❌ Este e-mail já está em uso';
+        else if (erro.code === 'auth/invalid-email') texto = '❌ E-mail inválido';
+        mostrarMensagem(msgId, texto, 'erro');
+      }
+    }
+  </script>
 </body>
 </html>
