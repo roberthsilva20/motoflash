@@ -18,8 +18,7 @@
     h2 { font-size: 20px; margin-bottom: 20px; text-align: center; color: #222; }
     input, textarea { width: 100%; padding: 14px; margin: 8px 0; border: 1px solid #ddd; border-radius: 8px; font-size: 16px; }
     button { width: 100%; padding: 14px; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; transition: opacity 0.2s; }
-    button:active { opacity: 0.8; }
-    button:disabled { opacity: 0.6; cursor: not-allowed; }
+    button:active { opacity: 0.7; }
     .btn-primary { background: #f59e0b; color: white; margin-top: 10px; }
     .btn-secondary { background: #eee; color: #333; margin-top: 8px; }
     .btn-success { background: #16a34a; color: white; }
@@ -49,8 +48,8 @@
     <h2>Bem-vindo!</h2>
     <input type="email" id="email" placeholder="Seu e-mail">
     <input type="password" id="senha" placeholder="Sua senha">
-    <button class="btn-primary" id="btnEntrar">Entrar</button>
-    <button class="btn-secondary" id="btnIrCadastro">Criar conta</button>
+    <button class="btn-primary" onclick="fazerLogin()">Entrar</button>
+    <button class="btn-secondary" onclick="irCadastro()">Criar conta</button>
     <p style="text-align:center; margin-top:15px; font-size:14px; color:#888;">
       Não precisa de cadastro de Dono — isso é controlado pelo administrador.
     </p>
@@ -65,17 +64,17 @@
     <input type="password" id="cadSenha" placeholder="Crie uma senha">
     <p style="margin-top:15px; font-weight:bold;">Eu sou:</p>
     <div class="tipo-row">
-      <button class="tipo-btn" id="btnRestaurante">🍽️ Restaurante</button>
-      <button class="tipo-btn" id="btnMotoboy">🏍️ Motoboy</button>
+      <button class="tipo-btn" id="btnRestaurante" onclick="escolherTipo('restaurante')">🍽️ Restaurante</button>
+      <button class="tipo-btn" id="btnMotoboy" onclick="escolherTipo('motoboy')">🏍️ Motoboy</button>
     </div>
-    <button class="btn-primary" id="btnCriarConta">Criar minha conta</button>
-    <button class="btn-secondary" id="btnVoltarLogin">Voltar</button>
+    <button class="btn-primary" onclick="criarConta()">Criar minha conta</button>
+    <button class="btn-secondary" onclick="voltarLogin()">Voltar</button>
   </div>
 </div>
 
 <div class="container hidden" id="painelRestaurante">
   <div style="text-align:right; margin-bottom:10px;">
-    <button class="sair-btn" id="btnSairRestaurante">Sair ↪</button>
+    <button class="sair-btn" onclick="sair()">Sair ↪</button>
   </div>
   <div class="card">
     <h2>🍽️ Novo Pedido de Entrega</h2>
@@ -85,7 +84,7 @@
     <label style="font-weight:bold;">Endereço de entrega:</label>
     <textarea id="endereco" placeholder="Rua, número, bairro, referência..." rows="2"></textarea>
     <label style="font-weight:bold;">Valor total da entrega (R$):</label>
-    <input type="number" id="valorTotal" placeholder="Mínimo R$ 7,00" min="7" step="0.01">
+    <input type="number" id="valorTotal" placeholder="Mínimo R$ 7,00" min="7" step="0.01" oninput="atualizarResumo()">
     <div id="erroValor" class="erro">❌ Valor mínimo é R$ 7,00</div>
     <div class="resumo" id="resumoDiv" style="display:none;">
       💰 Valor total: <strong>R$ <span id="resumoTotal">0,00</span></strong><br>
@@ -97,7 +96,7 @@
       <code style="font-size:14px; background:#eee; padding:6px 10px; border-radius:4px; display:inline-block; margin:8px 0;">35.377.564/0001-22</code><br>
       <small>CNPJ — Motoflash Serviços de Entrega</small>
     </div>
-    <button class="btn-primary" id="btnEnviarPedido">📤 Enviar Pedido</button>
+    <button class="btn-primary" onclick="criarPedido()">📤 Enviar Pedido</button>
   </div>
   <div class="card">
     <h3>📋 Meus Pedidos</h3>
@@ -107,7 +106,7 @@
 
 <div class="container hidden" id="painelMotoboy">
   <div style="text-align:right; margin-bottom:10px;">
-    <button class="sair-btn" id="btnSairMotoboy">Sair ↪</button>
+    <button class="sair-btn" onclick="sair()">Sair ↪</button>
   </div>
   <div class="card">
     <h2>🏍️ Pedidos Disponíveis</h2>
@@ -157,6 +156,10 @@ function mostrarPagina(id) {
     document.getElementById(p).classList.add('hidden');
   });
   document.getElementById(id).classList.remove('hidden');
+}
+
+function irCadastro() {
+  mostrarPagina('paginaCadastro');
 }
 
 function voltarLogin() {
@@ -242,7 +245,6 @@ function atualizarResumo() {
   const valor = parseFloat(valorInput.value);
   const resumoDiv = document.getElementById('resumoDiv');
   const erroDiv = document.getElementById('erroValor');
-  const btn = document.getElementById('btnEnviarPedido');
 
   if (valor && valor >= 7) {
     const taxa = valor * 0.20;
@@ -252,15 +254,12 @@ function atualizarResumo() {
     document.getElementById('resumoMotoboy').textContent = motoboy.toFixed(2);
     resumoDiv.style.display = 'block';
     erroDiv.style.display = 'none';
-    btn.disabled = false;
   } else if (valor && valor < 7) {
     resumoDiv.style.display = 'none';
     erroDiv.style.display = 'block';
-    btn.disabled = true;
   } else {
     resumoDiv.style.display = 'none';
     erroDiv.style.display = 'none';
-    btn.disabled = false;
   }
 }
 
@@ -357,18 +356,4 @@ function ativarListenerMeusPedidos() {
             }[p.status] || p.status;
             return `
               <div class="pedido-card">
-                <strong>${p.endereco}</strong><br>
-                💰 Valor: R$ ${p.valorTotal.toFixed(2)}<br>
-                Status: <strong>${statusText}</strong>
-              </div>
-            `;
-          }).join('');
-    });
-}
-
-document.addEventListener('DOMContentLoaded', function() {
-  document.getElementById('btnIrCadastro').addEventListener('click', function() {
-    mostrarPagina('paginaCadastro');
-  });
-  document.getElementById('btnRestaurante').addEventListener('click', function() {
-    escolherTipo('restaurante');
+                <strong>${p
