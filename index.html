@@ -47,10 +47,8 @@
 </head>
 <body>
 
-<!-- NOTIFICAÇÃO FLUTUANTE -->
 <div id="notifBox" class="notificacao"></div>
 
-<!-- TELA DE LOGIN -->
 <div id="telaLogin" class="tela ativa">
   <div class="caixa">
     <h2>🏍️ Motoflash</h2>
@@ -63,7 +61,6 @@
   </div>
 </div>
 
-<!-- TELA DE CADASTRO -->
 <div id="telaCadastro" class="tela">
   <div class="caixa">
     <h2>Criar Conta</h2>
@@ -82,38 +79,28 @@
   </div>
 </div>
 
-<!-- PAINEL RESTAURANTE -->
 <div id="telaRestaurante" class="tela">
   <button class="sair" onclick="sair()">← Sair</button>
   <div class="caixa">
     <h2 class="titulo-pedido">🍽️ Novo Pedido de Entrega</h2>
-    
-    <div class="aviso">
-      ⚠️ Valor mínimo da entrega: R$ 7,00
-    </div>
-    
+    <div class="aviso">⚠️ Valor mínimo da entrega: R$ 7,00</div>
     <label style="font-weight:bold; display:block; margin-top:10px;">Endereço de entrega:</label>
     <textarea id="endereco" placeholder="Rua, número, bairro, referência..." rows="3"></textarea>
-    
     <label style="font-weight:bold; display:block; margin-top:10px;">Valor total da entrega (R$):</label>
     <input type="number" id="valor" placeholder="Mínimo R$ 7,00" min="7" step="0.01">
-    
     <div class="pix-box">
       <strong>💵 PIX para pagamento:</strong>
       <div class="pix-codigo">35.377.564/0001-22</div>
       <small>CNPJ — Motoflash Serviços de Entrega</small>
     </div>
-    
     <button class="laranja" onclick="enviarPedido()">📤 Enviar Pedido</button>
   </div>
-  
   <div class="caixa">
     <h3>📋 Meus Pedidos</h3>
     <div id="listaMeus"></div>
   </div>
 </div>
 
-<!-- PAINEL MOTOBOY -->
 <div id="telaMotoboy" class="tela">
   <button class="sair" onclick="sair()">← Sair</button>
   <div class="caixa">
@@ -122,7 +109,6 @@
   </div>
 </div>
 
-<!-- PAINEL DONO -->
 <div id="telaDono" class="tela">
   <button class="sair" onclick="sair()">← Sair</button>
   <div class="caixa">
@@ -133,7 +119,6 @@
 </div>
 
 <script>
-// FIREBASE
 const firebaseConfig = {
   apiKey: "AIzaSyBD9qiDcnYQJDGn850KUkMpiBatuP0DWT8",
   authDomain: "motoflash-b1396.firebaseapp.com",
@@ -156,7 +141,6 @@ let listener2 = null;
 let listener3 = null;
 let ultimosStatusNotificados = {};
 
-// MOSTRAR NOTIFICAÇÃO
 function mostrarNotificacao(texto, tipo = 'padrao') {
   const box = document.getElementById('notifBox');
   box.textContent = texto;
@@ -167,7 +151,6 @@ function mostrarNotificacao(texto, tipo = 'padrao') {
   setTimeout(() => { box.style.display = 'none'; }, 4000);
 }
 
-// TELAS
 function mostrarTela(id) {
   document.querySelectorAll('.tela').forEach(t => t.classList.remove('ativa'));
   document.getElementById(id).classList.add('ativa');
@@ -189,15 +172,12 @@ function escolher(tipo) {
   document.getElementById('btnMoto').classList.toggle('ativo', tipo === 'motoboy');
 }
 
-// CRIAR CONTA
 async function criarConta() {
   limparErros();
   document.getElementById('carregandoCadastro').style.display = 'block';
-  
   const nome = document.getElementById('nomeCompleto').value.trim();
   const email = document.getElementById('cadEmail').value.trim();
   const senha = document.getElementById('cadSenha').value;
-  
   if (!nome || !email || !senha || !tipoUsuario) { 
     mostrarErro('erroCadastro', 'Preencha tudo e escolha seu perfil!'); 
     document.getElementById('carregandoCadastro').style.display = 'none';
@@ -208,7 +188,6 @@ async function criarConta() {
     document.getElementById('carregandoCadastro').style.display = 'none';
     return; 
   }
-  
   try {
     const cred = await auth.createUserWithEmailAndPassword(email, senha);
     await db.collection('usuarios').doc(cred.user.uid).set({ Nome: nome, Email: email, Tipo: tipoUsuario });
@@ -220,28 +199,22 @@ async function criarConta() {
   document.getElementById('carregandoCadastro').style.display = 'none';
 }
 
-// LOGIN
 async function entrar() {
   limparErros();
   document.getElementById('carregandoLogin').style.display = 'block';
-  
   const email = document.getElementById('email').value.trim();
   const senha = document.getElementById('senha').value;
-  
   if (!email || !senha) { 
     mostrarErro('erroLogin', 'Digite e-mail e senha!'); 
     document.getElementById('carregandoLogin').style.display = 'none';
     return; 
   }
-  
   try {
     const cred = await auth.signInWithEmailAndPassword(email, senha);
     uid = cred.user.uid;
     const doc = await db.collection('usuarios').doc(uid).get();
     if (doc.exists) {
       tipoUsuario = doc.data().Tipo;
-      
-      // SEU E-MAIL JÁ ESTÁ AQUI! 👇
       const emailDono = 'roberthaparecido77@gmail.com';
       if (email === emailDono) {
         mostrarTela('telaDono');
@@ -262,7 +235,6 @@ async function entrar() {
   document.getElementById('carregandoLogin').style.display = 'none';
 }
 
-// SAIR
 function sair() {
   if (listener1) listener1();
   if (listener2) listener2();
@@ -276,14 +248,11 @@ function sair() {
   mostrarTela('telaLogin');
 }
 
-// ENVIAR PEDIDO
 async function enviarPedido() {
   const endereco = document.getElementById('endereco').value.trim();
   const valor = parseFloat(document.getElementById('valor').value);
-  
   if (!endereco) { alert('Digite o endereço de entrega!'); return; }
   if (!valor || valor < 7) { alert('Valor mínimo é R$ 7,00!'); return; }
-  
   const usuarioDoc = await db.collection('usuarios').doc(uid).get();
   await db.collection('pedidos').add({
     endereco: endereco,
@@ -295,13 +264,11 @@ async function enviarPedido() {
     data: new Date().toISOString(),
     nomeRestaurante: usuarioDoc.data().Nome
   });
-  
   alert('✅ Pedido enviado! Aguardando motoboy...');
   document.getElementById('endereco').value = '';
   document.getElementById('valor').value = '';
 }
 
-// ACEITAR PEDIDO
 window.aceitar = async function(id) {
   await db.collection('pedidos').doc(id).update({ 
     status: 'aceito', 
@@ -311,7 +278,6 @@ window.aceitar = async function(id) {
   alert('✅ Pedido aceito! Boa entrega! 🏍️💨');
 };
 
-// MARCAR COMO ENTREGUE
 window.marcarEntregue = async function(id) {
   await db.collection('pedidos').doc(id).update({ 
     status: 'entregue',
@@ -320,7 +286,6 @@ window.marcarEntregue = async function(id) {
   alert('✅ Entrega concluída! Obrigado!');
 };
 
-// CARREGAR PEDIDOS DO RESTAURANTE
 function carregarMeusPedidos() {
   listener1 = db.collection('pedidos').where('usuarioId', '==', uid).orderBy('data', 'desc').limit(15)
     .onSnapshot(snap => {
@@ -328,18 +293,12 @@ function carregarMeusPedidos() {
         const doc = change.doc;
         const statusAtual = doc.data().status;
         const id = doc.id;
-        
         if (ultimosStatusNotificados[id] && ultimosStatusNotificados[id] !== statusAtual) {
-          if (statusAtual === 'aceito') {
-            mostrarNotificacao('✅ Seu pedido foi ACEITO por um motoboy!', 'sucesso');
-          }
-          if (statusAtual === 'entregue') {
-            mostrarNotificacao('🎉 Pedido ENTREGUE com sucesso!', 'sucesso');
-          }
+          if (statusAtual === 'aceito') mostrarNotificacao('✅ Seu pedido foi ACEITO por um motoboy!', 'sucesso');
+          if (statusAtual === 'entregue') mostrarNotificacao('🎉 Pedido ENTREGUE com sucesso!', 'sucesso');
         }
         ultimosStatusNotificados[id] = statusAtual;
       });
-      
       let html = '';
       if (snap.empty) { html = '<p style="text-align:center; color:#888; padding:15px;">Você ainda não tem pedidos enviados.</p>'; }
       snap.forEach(doc => {
@@ -356,16 +315,26 @@ function carregarMeusPedidos() {
     });
 }
 
-// CARREGAR PEDIDOS P/ MOTOBOY
 function carregarPedidosDisponiveis() {
   listener2 = db.collection('pedidos').where('status', '==', 'disponivel').orderBy('data', 'desc').limit(20)
     .onSnapshot(snap => {
       snap.docChanges().forEach(change => {
-        if (change.type === 'added') {
-          mostrarNotificacao('🔔 Novo pedido disponível!', 'aviso');
-        }
+        if (change.type === 'added') mostrarNotificacao('🔔 Novo pedido disponível!', 'aviso');
       });
-      
       let html = '';
       if (snap.empty) { html = '<p style="text-align:center; color:#888; padding:15px;">Nenhum pedido disponível no momento.<br>Volte mais tarde!</p>'; }
-      snap.forEach
+      snap.forEach(doc => {
+        const p = doc.data();
+        html += `<div class="pedido disponivel">
+          <strong>${p.endereco}</strong><br>
+          💰 Valor: R$ ${p.valorTotal.toFixed(2)}<br>
+          🏍️ Você recebe: R$ ${p.valorMoto.toFixed(2)}<br>
+          <button class="verde" style="margin-top:10px;" onclick="aceitar('${doc.id}')">✅ Aceitar Pedido</button>
+        </div>`;
+      });
+      document.getElementById('listaPedidos').innerHTML = html;
+    });
+}
+
+function carregarTodosPedidos() {
+  listener3 = db.collection('pedidos').orderBy('data', 'desc').limit
