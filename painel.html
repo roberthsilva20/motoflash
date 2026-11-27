@@ -18,7 +18,7 @@
     .btn { background: #22c55e; color: white; border: none; padding: 10px 15px; border-radius: 6px; cursor: pointer; font-weight: bold; width: 100%; font-size: 15px; margin-top: 8px; }
     .sair { background: #666; color: white; border: none; padding: 8px 15px; border-radius: 6px; cursor: pointer; margin-bottom: 15px; }
     .sem-dados { color: #666; font-style: italic; text-align: center; padding: 40px 20px; }
-    .erro { color: #dc2626; background: #fee2e2; padding: 15px; border-radius: 6px; text-align: center; margin: 15px 0; }
+    .info { background: #fef3c7; padding: 10px; border-radius: 6px; margin-bottom: 10px; font-size: 13px; }
   </style>
 </head>
 <body>
@@ -32,7 +32,7 @@
     💡 Apenas pedidos com PIX confirmado aparecem aqui. Clique para aceitar!
   </div>
 
-  <div id="mensagem"></div>
+  <div id="info" class="info" style="display:none;"></div>
   <div id="lista-pedidos"><p class="sem-dados">Carregando...</p></div>
 
   <script>
@@ -54,7 +54,7 @@
     }
 
     auth.onAuthStateChanged(user => {
-      const mensagem = document.getElementById("mensagem");
+      const info = document.getElementById("info");
       const lista = document.getElementById("lista-pedidos");
       
       if (!user) {
@@ -62,19 +62,18 @@
         return;
       }
       
-      mensagem.innerHTML = `<div style="background:#dcfce7;padding:10px;border-radius:6px;margin-bottom:15px;">✅ Logado como: ${user.email}</div>`;
+      info.style.display = "block";
+      info.innerHTML = "✅ Logado: " + user.email + " — Buscando pedidos...";
       carregarPedidos();
     });
 
     function carregarPedidos() {
-      const mensagem = document.getElementById("mensagem");
+      const info = document.getElementById("info");
       const lista = document.getElementById("lista-pedidos");
-      
-      console.log("Buscando pedidos...");
       
       db.collection("pedidos").get()
         .then(snapshot => {
-          console.log("Total de pedidos no banco:", snapshot.size);
+          info.innerHTML = "✅ Encontrados " + snapshot.size + " pedidos no total";
           lista.innerHTML = "";
           
           if (snapshot.empty) {
@@ -86,7 +85,6 @@
           
           snapshot.forEach(doc => {
             const p = doc.data();
-            console.log("Pedido:", doc.id, "Status:", p.status, "Motoboy:", p.motoboyId);
             
             if (p.status === "confirmado" && !p.motoboyId) {
               temDisponivel = true;
@@ -110,8 +108,9 @@
           }
         })
         .catch(erro => {
-          console.error("ERRO:", erro);
-          mensagem.innerHTML = `<div class="erro">❌ Erro: ${erro.message}</div>`;
+          info.innerHTML = "❌ ERRO: " + erro.message;
+          info.style.background = "#fee2e2";
+          info.style.borderLeft = "4px solid #ef4444";
           lista.innerHTML = '<p class="sem-dados">Não foi possível carregar os pedidos.</p>';
         });
     }
