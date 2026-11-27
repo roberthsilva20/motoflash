@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🍽️ Motoflash — Restaurante</title>
+  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore-compat.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: Arial, sans-serif; }
+    body { background: #f4f4f4; padding: 15px; }
+    header { background: #111; color: white; padding: 15px; border-radius: 10px; margin-bottom: 20px; text-align: center; }
+    .sair { background: #666; color: white; border: none; padding: 8px 15px; border-radius: 6px; cursor: pointer; margin-bottom: 15px; }
+    .card { background: white; padding: 20px; border-radius: 10px; margin-bottom: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+    h2 { font-size: 18px; margin-bottom: 15px; color: #222; }
+    input, textarea { width: 100%; padding: 12px; margin-bottom: 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 15px; }
+    input:focus, textarea:focus { outline: none; border-color: #22c55e; }
+    button.criar { background: #22c55e; color: white; border: none; padding: 12px 20px; border-radius: 6px; font-size: 16px; font-weight: bold; cursor: pointer; width: 100%; }
+    button.criar:hover { background: #16a34a; }
+    .pedido { background: white; padding: 15px; border-radius: 8px; margin-bottom: 10px; border-left: 4px solid #3b82f6; }
+    .pedido.aceito { border-left-color: #22c55e; }
+    .pedido h4 { font-size: 15px; margin-bottom: 8px; }
+    .pedido p { font-size: 13px; color: #555; margin-bottom: 4px; }
+    .status { display: inline-block; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: bold; }
+    .status.pendente { background: #fef3c7; color: #92400e; }
+    .status.confirmado { background: #dbeafe; color: #1e40af; }
+    .status.aceito { background: #d1fae5; color: #065f46; }
+    .pix-box { background: #f0fdf4; padding: 12px; border-radius: 6px; margin: 10px 0; border: 1px solid #22c55e; }
+    .pix-chave { font-family: monospace; background: white; padding: 8px; border-radius: 4px; margin-top: 6px; font-size: 14px; }
+    .sem-dados { color: #666; font-style: italic; text-align: center; padding: 30px; }
+  </style>
+</head>
+<body>
+  <button class="sair" onclick="sair()">← Sair</button>
+
+  <header>
+    <h1>🍽️ Painel do Restaurante</h1>
+  </header>
+
+  <div class="card">
+    <h2>📦 Novo Pedido de Entrega</h2>
+    
+    <label style="font-size:14px; font-weight:bold; color:#444;">Valor total da entrega (mínimo R$ 7,00)</label>
+    <input type="number" id="valor-total" placeholder="Ex: 15,00" step="0.01" min="7.00">
+    
+    <label style="font-size:14px; font-weight:bold; color:#444;">Endereço de entrega</label>
+    <textarea id="endereco" placeholder="Rua, número, bairro, cidade..." rows="2"></textarea>
+    
+    <label style="font-size:14px; font-weight:bold; color:#444;">Observação (opcional)</label>
+    <textarea id="obs" placeholder="Informações adicionais..." rows="2"></textarea>
+
+    <div class="pix-box">
+      <strong>💳 Chave PIX para pagamento:</strong>
+      <div class="pix-chave" onclick="copiarPix()">35377564000122</div>
+      <small style="color:#666; font-size:11px;">Clique para copiar</small>
+    </div>
+    
+    <button class="criar" onclick="criarPedido()">📤 Criar Pedido</button>
+  </div>
+
+  <div class="card">
+    <h2>📋 Meus Pedidos</h2>
+    <div id="lista-pedidos"><p class="sem-dados">Carregando...</p></div>
+  </div>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyBD9qiDcnYQJDGn850KUkMpiBatuP0DWT8",
+      authDomain: "motoflash-b1396.firebaseapp.com",
+      projectId: "motoflash-b1396",
+      storageBucket: "motoflash-b1396.firebasestorage.app",
+      messagingSenderId: "709365607477",
+      appId: "1:709365607477:web:5a83bf82fafef1ca9e957c"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+    let restauranteId = null;
+    let restauranteNome = null;
+
+    function sair() {
+      auth.signOut().then(() => window.location.href = "index.html");
+    }
+
+    function copiarPix() {
+      navigator.clipboard.writeText('35377564000122');
+      alert("✅ Chave PIX copiada!");
+    }
+
+    auth.onAuthStateChanged(user => {
+      if (!user) {
+        window.location.href = "index.html";
+        return;
+      }
+      restauranteId = user.uid;
+      restauranteNome = user.displayName || "Restaurante";
+      carregarPedidos();
+    });
+
+    async function criarPedido() {
+      const valorTotal = parseFloat(document.getElementById('valor-total').value);
+      const endereco = document.getElementById('endereco').value.trim();
+      const obs = document.getElementById('obs').value.trim();
+
+      if (!valorTotal || !endereco) {
+        alert("⚠️ Preencha o valor e o endereço!");
+        return;
+      }
+      if (valorTotal < 7.00) {
+        alert("⚠️ Valor mínimo é R$ 7,00!");
+        return;
+      }
+
+      const suaParte = valorTotal * 0.20;
+      const valorMoto = valorTotal * 0.80;
+
+      try {
+        await db.collection('pedidos').add({
+          restauranteId: restauranteId,
+          restaurante: restauranteNome,
+          valorTotal: valorTotal,
+          valorMoto: valorMoto,
+          valorDono: suaParte,
+          endereco: endereco,
+          observacao: obs,
+          status: 'pendente',
+          motoboyId: null,
+          motoboyNome: null,
+          data: firebase.firestore.FieldValue.serverTimestamp()
+        });
+
+        alert("✅ Pedido criado com sucesso! Agora confirme o PIX abaixo.");
+        document.getElementById('valor-total').value = '';
+        document.getElementById('endereco').value = '';
+        document.getElementById('obs').value = '';
+      } catch (erro) {
+        alert("❌ Erro: " + erro.message);
+      }
+    }
+
+    function carregarPedidos() {
+      const lista = document.getElementById("lista-pedidos");
+      
+      db.collection("pedidos")
+        .where("restauranteId", "==", restauranteId)
+        .orderBy("data", "desc")
+        .onSnapshot(snapshot => {
+          lista.innerHTML = "";
+          
+          if (snapshot.empty) {
+            lista.innerHTML = '<p class="sem-dados">Nenhum pedido criado ainda.</p>';
+            return;
+          }
+
+          snapshot.forEach(doc => {
+            const p = doc.data();
+            const data = p.data ? new Date(p.data.toDate()).toLocaleString('pt-BR') : "";
+            
+            let statusClass = 'pendente';
+            let statusTexto = '⏳ Aguardando Pagamento';
+            if (p.status === 'confirmado') {
+              statusClass = 'confirmado';
+              statusTexto = '💵 PIX Confirmado — Aguardando Motoboy';
+            } else if (p.status === 'aceito') {
+              statusClass = 'aceito';
+              statusTexto = '🏍️ Aceito por: ' + (p.motoboyNome || 'Motoboy');
+            }
+
+            let botoes = '';
+            if (p.status === 'pendente') {
+              botoes = `<button style="background:#3b82f6;color:white;border:none;padding:6px 12px;border-radius:4px;margin-top:8px;cursor:pointer;" onclick="confirmarPix('${doc.id}')">✅ Já enviei o PIX</button>`;
+            }
+
+            lista.innerHTML += `
+              <div class="pedido ${p.status === 'aceito' ? 'aceito' : ''}">
+                <h4>📦 Pedido — ${data}</h4>
+                <p><strong>Valor:</strong> R$ ${(p.valorTotal || 0).toFixed(2).replace('.', ',')}</p>
+                <p><strong>Endereço:</strong> ${p.endereco}</p>
+                ${p.observacao ? `<p><strong>Obs:</strong> ${p.observacao}</p>` : ''}
+                <span class="status ${statusClass}">${statusTexto}</span>
+                ${botoes}
+              </div>
+            `;
+          });
+        });
+    }
+
+    window.confirmarPix = function(id) {
+      if (!confirm("Confirma que o PIX foi enviado?")) return;
+      
+      db.collection('pedidos').doc(id).update({
+        status: 'confirmado'
+      })
+      .then(() => {
+        alert("✅ Pronto! O motoboy já pode ver sua entrega! 🏍️");
+      })
+      .catch(err => alert("❌ Erro: " + err.message));
+    }
+  </script>
+</body>
+</html>
