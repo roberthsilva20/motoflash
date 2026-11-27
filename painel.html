@@ -5,28 +5,26 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>🏍️ Motoflash — Motoboy</title>
   <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore-compat.js"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: Arial, sans-serif; }
-    body { background: #f4f4f4; padding: 15px; }
-    header { background: #111; color: white; padding: 15px; border-radius: 10px; margin-bottom: 20px; text-align: center; }
-    .pedido { background: white; padding: 15px; border-radius: 10px; margin-bottom: 12px; border-left: 4px solid #22c55e; }
-    .btn { background: #22c55e; color: white; border: none; padding: 10px 15px; border-radius: 6px; cursor: pointer; font-weight: bold; width: 100%; font-size: 15px; margin-top: 8px; }
-    .sair { background: #666; color: white; border: none; padding: 8px 15px; border-radius: 6px; cursor: pointer; margin-bottom: 15px; }
-    .mensagem { text-align: center; padding: 30px; color: #666; }
-    .erro { background: #fee; color: red; padding: 15px; border-radius: 6px; margin-bottom: 15px; }
+    body { background: #f4f4f4; padding: 20px; }
+    h1 { text-align: center; margin-bottom: 20px; }
+    .passo { background: white; padding: 15px; margin-bottom: 10px; border-radius: 8px; border-left: 4px solid #3b82f6; }
+    .ok { border-left-color: #22c55e; background: #f0fdf4; }
+    .erro { border-left-color: #ef4444; background: #fef2f2; }
+    .pedido { background: white; padding: 15px; border-radius: 8px; margin-bottom: 10px; border-left: 4px solid #22c55e; }
+    .btn { background: #22c55e; color: white; border: none; padding: 10px; border-radius: 5px; width: 100%; font-size: 16px; margin-top: 8px; cursor: pointer; }
   </style>
 </head>
 <body>
-  <button class="sair" onclick="sair()">← Sair</button>
 
-  <header>
-    <h1>🏍️ Pedidos Disponíveis</h1>
-  </header>
+  <h1>🏍️ Pedidos Disponíveis</h1>
 
-  <div id="aviso"></div>
-  <div id="lista"><div class="mensagem">Carregando...</div></div>
+  <div id="passo1" class="passo">1️⃣ Iniciando Firebase...</div>
+  <div id="passo2" class="passo">2️⃣ Conectando ao banco...</div>
+  <div id="passo3" class="passo">3️⃣ Buscando pedidos...</div>
+  <div id="pedidos"></div>
 
   <script>
     const firebaseConfig = {
@@ -38,76 +36,58 @@
       appId: "1:709365607477:web:5a83bf82fafef1ca9e957c"
     };
 
-    firebase.initializeApp(firebaseConfig);
-    const auth = firebase.auth();
+    try {
+      firebase.initializeApp(firebaseConfig);
+      document.getElementById("passo1").className = "passo ok";
+      document.getElementById("passo1").innerHTML = "1️⃣ Firebase ✅";
+    } catch(e) {
+      document.getElementById("passo1").className = "passo erro";
+      document.getElementById("passo1").innerHTML = "1️⃣ Firebase ❌: " + e.message;
+    }
+
     const db = firebase.firestore();
+    document.getElementById("passo2").className = "passo ok";
+    document.getElementById("passo2").innerHTML = "2️⃣ Banco conectado ✅";
 
-    function sair() {
-      auth.signOut().then(() => window.location.href = "index.html");
-    }
+    db.collection("pedidos").get()
+      .then(snapshot => {
+        document.getElementById("passo3").className = "passo ok";
+        document.getElementById("passo3").innerHTML = `3️⃣ Encontrados ${snapshot.size} pedidos ✅`;
+        
+        const container = document.getElementById("pedidos");
+        
+        if (snapshot.empty) {
+          container.innerHTML = "<p style='text-align:center;color:#666;padding:20px;'>Nenhum pedido cadastrado.</p>";
+          return;
+        }
 
-    function mostrarPedidos(user) {
-      const aviso = document.getElementById("aviso");
-      const lista = document.getElementById("lista");
-      
-      db.collection("pedidos").get()
-        .then(snapshot => {
-          aviso.innerHTML = `<div style="background:#dcfce7;padding:10px;border-radius:6px;margin-bottom:15px;">✅ Conectado! ${snapshot.size} pedidos encontrados</div>`;
-          lista.innerHTML = "";
+        let temDisponivel = false;
+        snapshot.forEach(doc => {
+          const p = doc.data();
           
-          if (snapshot.empty) {
-            lista.innerHTML = '<div class="mensagem">Nenhum pedido disponível no momento.</div>';
-            return;
+          if (p.status === "confirmado" && !p.motoboyId) {
+            temDisponivel = true;
+            container.innerHTML += `
+              <div class="pedido">
+                <h3>📍 ${p.restaurante || "Restaurante"}</h3>
+                <p><strong>Endereço:</strong> ${p.endereco || "-"}</p>
+                <p><strong>Valor:</strong> R$ ${(p.valorTotal || 0).toFixed(2).replace('.', ',')}</p>
+                <p><strong>Status:</strong> ${p.status}</p>
+                <button class="btn" onclick="alert('Aceito!')">✅ Aceitar</button>
+              </div>
+            `;
           }
-
-          let temPedido = false;
-          snapshot.forEach(doc => {
-            const p = doc.data();
-            if (p.status === "confirmado" && !p.motoboyId) {
-              temPedido = true;
-              lista.innerHTML += `
-                <div class="pedido">
-                  <h3>📍 ${p.restaurante || "Restaurante"}</h3>
-                  <p><strong>Endereço:</strong> ${p.endereco || "-"}</p>
-                  <p><strong>Valor total:</strong> R$ ${(p.valorTotal || 0).toFixed(2).replace('.', ',')}</p>
-                  <p><strong>Sua parte:</strong> R$ ${(p.valorMoto || 0).toFixed(2).replace('.', ',')}</p>
-                  <button class="btn" onclick="aceitar('${doc.id}')">✅ Aceitar Entrega</button>
-                </div>
-              `;
-            }
-          });
-
-          if (!temPedido) {
-            lista.innerHTML = '<div class="mensagem">Nenhum pedido disponível no momento.<br>Volte mais tarde!</div>';
-          }
-        })
-        .catch(erro => {
-          aviso.innerHTML = `<div class="erro">❌ Erro: ${erro.message}</div>`;
-          lista.innerHTML = '<div class="mensagem">Não foi possível carregar os pedidos.</div>';
         });
-    }
 
-    auth.onAuthStateChanged(user => {
-      if (!user) {
-        document.getElementById("aviso").innerHTML = '<div class="erro">⚠️ Você precisa fazer login primeiro. Redirecionando...</div>';
-        setTimeout(() => window.location.href = "index.html", 2000);
-        return;
-      }
-      mostrarPedidos(user);
-    });
-
-    window.aceitar = function(id) {
-      if (confirm("Aceitar essa entrega?")) {
-        db.collection("pedidos").doc(id).update({
-          status: "aceito",
-          motoboyId: auth.currentUser.uid,
-          motoboyNome: auth.currentUser.displayName || "Motoboy"
-        }).then(() => {
-          alert("✅ Pedido aceito!");
-          mostrarPedidos(auth.currentUser);
-        }).catch(err => alert("Erro: " + err.message));
-      }
-    }
+        if (!temDisponivel) {
+          container.innerHTML = "<p style='text-align:center;color:#666;padding:20px;'>Nenhum pedido disponível no momento.</p>";
+        }
+      })
+      .catch(err => {
+        document.getElementById("passo3").className = "passo erro";
+        document.getElementById("passo3").innerHTML = "3️⃣ Erro ❌: " + err.message;
+      });
   </script>
+
 </body>
 </html>
