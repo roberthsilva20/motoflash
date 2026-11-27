@@ -21,22 +21,26 @@
     .laranja { background: #f59e0b; color: white; }
     .cinza { background: #eee; color: #333; }
     .verde { background: #16a34a; color: white; }
+    .azul { background: #3b82f6; color: white; }
+    .vermelho { background: #ef4444; color: white; }
     .divisor { text-align: center; margin: 20px 0; color: #888; }
     .tela { display: none; max-width: 420px; margin: 0 auto; }
     .tela.ativa { display: block; }
     .grupo-botoes { display: flex; gap: 10px; margin: 15px 0; }
     .grupo-botoes button { flex: 1; }
     .grupo-botoes button.ativo { border: 2px solid #f59e0b; background: #fff8eb; color: #b45309; }
-    .aviso { background: #fffbeb; border-left: 4px solid #f59e0b; padding: 12px; margin: 12px 0; border-radius: 0 6px 6px 0; font-size: 15px; color: #854d0e; text-align: center; font-weight: 500; }
+    .aviso { background: #fffbeb; border-left: 4px solid #f59e0b; padding: 12px; margin: 12px 0; border-radius: 0 6px 6px 0; font-size: 15px; color: #854d0e; font-weight: 500; }
+    .aviso-info { background: #e0f2fe; border-left: 4px solid #0284c7; padding: 12px; margin: 12px 0; border-radius: 0 6px 6px 0; font-size: 14px; color: #075985; }
     .pix-box { background: #ecfdf3; border: 2px solid #16a34a; border-radius: 8px; padding: 15px; margin: 15px 0; text-align: center; }
     .pix-codigo { background: #e5e7eb; padding: 8px 12px; border-radius: 4px; display: inline-block; margin: 8px 0; font-family: monospace; font-size: 16px; }
     .pedido { background: white; padding: 15px; border-radius: 8px; margin: 10px 0; border-left: 4px solid #ddd; }
     .sair { background: none; color: #666; text-align: right; width: auto; margin: 0 0 15px auto; padding: 0; font-size: 15px; }
     .titulo-pagina { font-size: 22px; text-align: center; margin-bottom: 20px; color: #222; }
     .status-tag { display: inline-block; padding: 4px 10px; border-radius: 20px; font-size: 13px; font-weight: bold; }
-    .status-disponivel { background: #fef3c7; color: #92400e; }
+    .status-pendente { background: #fef3c7; color: #92400e; }
+    .status-disponivel { background: #d1fae5; color: #065f46; }
     .status-aceito { background: #dbeafe; color: #1e40af; }
-    .status-entregue { background: #d1fae5; color: #065f46; }
+    .status-entregue { background: #e5e7eb; color: #4b5563; }
     .carregando { text-align: center; padding: 30px; color: #666; }
   </style>
 </head>
@@ -83,12 +87,18 @@
     <textarea id="endereco" placeholder="Rua, número, bairro..." rows="3"></textarea>
     <label style="font-weight:bold; display:block; margin-top:10px;">Valor da entrega (R$):</label>
     <input type="number" id="valor" placeholder="Mínimo R$ 7,00" min="7" step="0.01">
+    
     <div class="pix-box">
-      <strong>💵 PIX para pagamento:</strong>
+      <strong>💵 Chave PIX para pagamento:</strong>
       <div class="pix-codigo">35.377.564/0001-22</div>
       <small>CNPJ — Motoflash Serviços de Entrega</small>
     </div>
-    <button class="laranja" onclick="enviarPedido()">📤 Enviar Pedido</button>
+    
+    <div class="aviso-info">
+      ℹ️ Após fazer o PIX, clique em "Já fiz o PIX". Seu pedido será liberado assim que confirmarmos!
+    </div>
+    
+    <button class="verde" onclick="enviarPedido()">✅ Já fiz o PIX — Enviar Pedido</button>
   </div>
   <div class="card">
     <h3>📋 Meus Pedidos</h3>
@@ -100,6 +110,9 @@
 <div id="telaMotoboy" class="tela">
   <button class="sair" onclick="sair()">← Sair</button>
   <h2 class="titulo-pagina">🏍️ Pedidos Disponíveis</h2>
+  <div class="aviso-info">
+    ⏳ Apenas pedidos com PIX confirmado aparecem aqui.
+  </div>
   <div id="listaPedidos"><p class="carregando">Carregando...</p></div>
 </div>
 
@@ -226,13 +239,13 @@ async function enviarPedido() {
       valorTotal: valor,
       taxa: taxa,
       valorMoto: valorMoto,
-      status: 'disponivel',
+      status: 'aguardando_pix',
       data: new Date(),
       restaurante: usuarioAtual.nome,
       restauranteEmail: usuarioAtual.email,
       restauranteId: auth.currentUser.uid
     });
-    alert('✅ Pedido enviado! O motoboy já pode ver!');
+    alert('✅ Pedido enviado! Aguardando confirmação do PIX pelo dono.');
     document.getElementById('endereco').value = '';
     document.getElementById('valor').value = '';
   } catch (erro) {
@@ -295,10 +308,22 @@ function carregarMeusPedidos() {
       }
       snapshot.forEach(doc => {
         const p = { id: doc.id, ...doc.data() };
-        let statusClass = p.status === 'disponivel' ? 'status-disponivel' : 
-                          p.status === 'aceito' ? 'status-aceito' : 'status-entregue';
-        let statusTexto = p.status === 'disponivel' ? '🟡 Aguardando motoboy' : 
-                          p.status === 'aceito' ? '🔵 Aceito' : '✅ Entregue';
+        let statusClass, statusTexto;
+        
+        if (p.status === 'aguardando_pix') {
+          statusClass = 'status-pendente';
+          statusTexto = '⏳ Aguardando confirmação do PIX';
+        } else if (p.status === 'disponivel') {
+          statusClass = 'status-disponivel';
+          statusTexto = '✅ PIX confirmado — Aguardando motoboy';
+        } else if (p.status === 'aceito') {
+          statusClass = 'status-aceito';
+          statusTexto = '🔵 Aceito por um motoboy';
+        } else {
+          statusClass = 'status-entregue';
+          statusTexto = '✅ Entregue';
+        }
+        
         html += `<div class="pedido">
           <strong>${p.endereco}</strong><br>
           Valor total: R$ ${p.valorTotal.toFixed(2)}<br>
