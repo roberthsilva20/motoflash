@@ -36,7 +36,6 @@
       <button class="aba-btn" id="btn-cadastro" onclick="mostrarAba('cadastro')">Criar Conta</button>
     </div>
 
-    <!-- Área de Login -->
     <div id="area-login">
       <input type="email" id="email-login" placeholder="Seu e-mail">
       <input type="password" id="senha-login" placeholder="Sua senha">
@@ -44,7 +43,6 @@
       <div id="msg-login" class="mensagem"></div>
     </div>
 
-    <!-- Área de Cadastro -->
     <div id="area-cadastro" class="oculto">
       <input type="text" id="nome-cadastro" placeholder="Seu nome completo">
       <input type="email" id="email-cadastro" placeholder="Seu e-mail">
@@ -91,28 +89,6 @@
       el.innerHTML = `<span class="${tipo}">${texto}</span>`;
     }
 
-    auth.onAuthStateChanged(user => {
-      if (user) {
-        verificarRedirecionar(user);
-      }
-    });
-
-    async function verificarRedirecionar(user) {
-      try {
-        const doc = await db.collection('usuarios').doc(user.uid).get();
-        if (doc.exists) {
-          const dados = doc.data();
-          if (dados.tipo === 'motoboy') {
-            window.location.href = 'painel.html';
-          } else if (dados.tipo === 'restaurante') {
-            window.location.href = 'index.html'; // ← Aqui você coloca o painel do restaurante quando tiver
-          }
-        }
-      } catch (e) {
-        console.log('Verificando usuário...');
-      }
-    }
-
     async function fazerLogin() {
       const email = document.getElementById('email-login').value.trim();
       const senha = document.getElementById('senha-login').value;
@@ -129,20 +105,32 @@
         const user = userCred.user;
         
         const doc = await db.collection('usuarios').doc(user.uid).get();
-        if (doc.exists) {
-          const dados = doc.data();
-          if (dados.tipo === 'motoboy') {
+        
+        if (!doc.exists) {
+          mostrarMensagem(msgId, '❌ Usuário não cadastrado. Crie uma conta primeiro.', 'erro');
+          return;
+        }
+
+        const dados = doc.data();
+        
+        if (dados.tipo === 'motoboy') {
+          mostrarMensagem(msgId, '✅ Entrando...', 'sucesso');
+          setTimeout(() => {
             window.location.href = 'painel.html';
-          } else if (dados.tipo === 'restaurante') {
-            mostrarMensagem(msgId, '✅ Entrando...', 'sucesso');
-            // window.location.href = 'painel-restaurante.html'; ← quando tiver a página do restaurante
-          }
+          }, 800);
+        } else if (dados.tipo === 'restaurante') {
+          mostrarMensagem(msgId, '✅ Bem-vindo, Restaurante!', 'sucesso');
+          // Aqui você coloca o painel do restaurante quando tiver
+        } else {
+          mostrarMensagem(msgId, '✅ Login realizado!', 'sucesso');
         }
       } catch (erro) {
-        let texto = '❌ Erro ao entrar';
+        console.error('Erro de login:', erro);
+        let texto = '❌ Erro ao entrar. Tente novamente.';
         if (erro.code === 'auth/user-not-found') texto = '❌ Usuário não encontrado';
         else if (erro.code === 'auth/wrong-password') texto = '❌ Senha incorreta';
         else if (erro.code === 'auth/invalid-email') texto = '❌ E-mail inválido';
+        else if (erro.code === 'auth/network-request-failed') texto = '❌ Sem conexão com a internet';
         mostrarMensagem(msgId, texto, 'erro');
       }
     }
@@ -178,17 +166,10 @@
           ativo: true
         });
 
-        mostrarMensagem(msgId, '✅ Conta criada! Entrando...', 'sucesso');
-        
-        setTimeout(() => {
-          if (tipo === 'motoboy') {
-            window.location.href = 'painel.html';
-          } else {
-            mostrarMensagem(msgId, '✅ Bem-vindo! Faça login abaixo', 'sucesso');
-            mostrarAba('login');
-          }
-        }, 1200);
+        mostrarMensagem(msgId, '✅ Conta criada com sucesso! Faça login abaixo.', 'sucesso');
+        setTimeout(() => mostrarAba('login'), 1500);
       } catch (erro) {
+        console.error('Erro de cadastro:', erro);
         let texto = '❌ Erro ao criar conta';
         if (erro.code === 'auth/email-already-in-use') texto = '❌ Este e-mail já está em uso';
         else if (erro.code === 'auth/invalid-email') texto = '❌ E-mail inválido';
