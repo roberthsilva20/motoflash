@@ -148,7 +148,6 @@ let ultimoStatusAceito = {};
 let listenerPedidos = null;
 let listenerMeusPedidos = null;
 
-// 🔊 Função para tocar som
 function tocarSomAviso() {
   try {
     const som = new Audio('https://assets.mixkit.co/sfx/preview/mixkit-software-interface-start-2574.mp3');
@@ -159,7 +158,6 @@ function tocarSomAviso() {
   }
 }
 
-// 🔔 Mostra aviso visual
 function mostrarAlerta(texto) {
   const alerta = document.getElementById('alertaNotificacao');
   alerta.textContent = '🔔 ' + texto;
@@ -309,7 +307,6 @@ async function criarPedido() {
   document.getElementById('resumoDiv').style.display = 'none';
 }
 
-// 🔄 Atualiza em TEMPO REAL — Motoboy: novos pedidos disponíveis
 function ativarListenerPedidosDisponiveis() {
   listenerPedidos = db.collection('pedidos')
     .where('status', '==', 'disponivel')
@@ -341,7 +338,15 @@ function ativarListenerPedidosDisponiveis() {
     });
 }
 
-// 🔄 Atualiza em TEMPO REAL — Restaurante: quando pedido é aceito
+window.aceitarPedido = async function(idPedido) {
+  await db.collection('pedidos').doc(idPedido).update({
+    status: 'aceito',
+    motoboyId: usuarioId,
+    dataAceito: new Date().toISOString()
+  });
+  alert('✅ Pedido aceito! Boa entrega! 🏍️💨');
+};
+
 function ativarListenerMeusPedidos() {
   listenerMeusPedidos = db.collection('pedidos')
     .where('usuarioId', '==', usuarioId)
@@ -356,8 +361,4 @@ function ativarListenerMeusPedidos() {
           tocarSomAviso();
           mostrarAlerta('✅ Pedido ACEITO pelo motoboy!');
         }
-        ultimoStatusAceito[id] = statusAtual;
-      });
-      
-      document.getElementById('listaMeusPedidos').innerHTML = snap.empty
-        ? '<p style
+        ultimoStatusAceito
