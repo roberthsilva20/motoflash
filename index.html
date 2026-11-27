@@ -103,26 +103,16 @@
         const userCred = await auth.signInWithEmailAndPassword(email, senha);
         const user = userCred.user;
         
-        const doc = await db.collection('usuarios').doc(user.uid).get();
+        // Redireciona direto sem esperar o Firestore
+        mostrarMensagem(msgId, '✅ Login OK! Indo para o painel...', 'sucesso');
         
-        if (!doc.exists) {
-          mostrarMensagem(msgId, '❌ Usuário não cadastrado. Crie uma conta primeiro.', 'erro');
-          return;
-        }
-
-        const dados = doc.data();
+        setTimeout(() => {
+          window.location.href = 'painel.html';
+        }, 500);
         
-        if (dados.tipo === 'motoboy') {
-          mostrarMensagem(msgId, '✅ Entrando...', 'sucesso');
-          setTimeout(() => {
-            window.location.href = 'https://roberthsilva20.github.io/motoflash/painel.html';
-          }, 600);
-        } else if (dados.tipo === 'restaurante') {
-          mostrarMensagem(msgId, '✅ Bem-vindo, Restaurante!', 'sucesso');
-        }
       } catch (erro) {
-        console.error('Erro de login:', erro);
-        let texto = '❌ Erro ao entrar. Tente novamente.';
+        console.error('Erro:', erro);
+        let texto = '❌ Erro ao entrar';
         if (erro.code === 'auth/user-not-found') texto = '❌ Usuário não encontrado';
         else if (erro.code === 'auth/wrong-password') texto = '❌ Senha incorreta';
         else if (erro.code === 'auth/invalid-email') texto = '❌ E-mail inválido';
@@ -164,7 +154,7 @@
         mostrarMensagem(msgId, '✅ Conta criada! Faça login abaixo.', 'sucesso');
         setTimeout(() => mostrarAba('login'), 1500);
       } catch (erro) {
-        console.error('Erro de cadastro:', erro);
+        console.error('Erro:', erro);
         let texto = '❌ Erro ao criar conta';
         if (erro.code === 'auth/email-already-in-use') texto = '❌ Este e-mail já está em uso';
         else if (erro.code === 'auth/invalid-email') texto = '❌ E-mail inválido';
