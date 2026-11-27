@@ -3,378 +3,114 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Motoflash — Sistema</title>
+  <title>🏍️ Motoflash — Motoboy</title>
   <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore-compat.js"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: Arial, sans-serif; }
-    body { background: #f4f4f4; color: #222; padding: 15px; }
-    header { background: #111; color: white; padding: 15px 20px; border-radius: 10px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
-    h1 { font-size: 20px; }
-    .sair { background: #dc2626; color: white; border: none; padding: 8px 15px; border-radius: 6px; cursor: pointer; font-weight: bold; }
-    .card { background: white; padding: 20px; border-radius: 10px; margin-bottom: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-    button { background: #f59e0b; color: white; border: none; padding: 10px 16px; border-radius: 6px; font-size: 15px; cursor: pointer; font-weight: bold; margin: 5px 3px; }
-    button.sucesso { background: #16a34a; }
-    button.perigo { background: #dc2626; }
-    button.secundario { background: #6b7280; }
-    input, select, textarea { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ddd; border-radius: 6px; font-size: 15px; }
-    .status { padding: 4px 10px; border-radius: 20px; font-size: 13px; font-weight: bold; }
-    .status.ativo { background: #dcfce7; color: #166534; }
-    .pedido { border-left: 4px solid #f59e0b; padding: 12px 15px; margin: 10px 0; background: #fffbeb; border-radius: 6px; }
-    .tabs { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 20px; }
-    .tab { padding: 10px 15px; background: #ddd; border-radius: 6px; cursor: pointer; font-size: 14px; }
-    .tab.ativa { background: #f59e0b; color: white; }
-    .aba { display: none; }
-    .aba.mostra { display: block; }
-    .boasvindas { text-align: center; padding: 30px 10px; }
-    .boasvindas h2 { color: #f59e0b; margin-bottom: 10px; }
-    .carregando { text-align: center; padding: 50px; font-size: 18px; color: #666; }
-    .oculto { display: none !important; }
-    .valor-destaque { font-size: 22px; font-weight: bold; color: #16a34a; }
-    .valor-motoboy { color: #3b82f6; }
-    .pix-info { background: #dbeafe; padding: 10px; border-radius: 6px; margin: 10px 0; font-size: 14px; }
-    .vazio { text-align: center; color: #888; padding: 20px; }
+    body { background: #f4f4f4; padding: 15px; }
+    header { background: #111; color: white; padding: 15px; border-radius: 10px; margin-bottom: 20px; text-align: center; }
+    .aviso { background: #dbeafe; padding: 12px; border-radius: 6px; margin-bottom: 15px; border-left: 4px solid #3b82f6; }
+    .pedido { background: white; padding: 15px; border-radius: 10px; margin-bottom: 12px; border-left: 4px solid #22c55e; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+    .pedido h3 { font-size: 16px; margin-bottom: 10px; color: #222; }
+    .pedido p { margin-bottom: 6px; color: #444; font-size: 14px; }
+    .btn { background: #22c55e; color: white; border: none; padding: 10px 15px; border-radius: 6px; cursor: pointer; font-weight: bold; width: 100%; font-size: 15px; margin-top: 8px; }
+    .btn:hover { background: #16a34a; }
+    .sair { background: #666; color: white; border: none; padding: 8px 15px; border-radius: 6px; cursor: pointer; margin-bottom: 15px; }
+    .sem-dados { color: #666; font-style: italic; text-align: center; padding: 40px 20px; }
   </style>
 </head>
 <body>
+  <button class="sair" onclick="sair()">← Sair</button>
 
-<div id="telaCarregando" class="carregando">🔄 Carregando...</div>
-
-<div id="conteudo" class="oculto">
   <header>
-    <div>
-      <h1 id="tituloPagina">🏍️ Motoflash</h1>
-      <p id="nomeUsuario" style="opacity:0.8; font-size:14px;"></p>
-    </div>
-    <button class="sair" onclick="sair()">Sair</button>
+    <h1>🏍️ Pedidos Disponíveis</h1>
   </header>
 
-  <!-- 🔹 Tela do DONO -->
-  <div id="areaDono" class="oculto">
-    <div class="tabs">
-      <div class="tab ativa" onclick="mostrarAba('usuarios')">👤 Usuários</div>
-      <div class="tab" onclick="mostrarAba('pedidos')">📦 Pedidos</div>
-      <div class="tab" onclick="mostrarAba('financeiro')">💰 Financeiro</div>
-    </div>
-
-    <div id="usuarios" class="aba mostra">
-      <div class="card">
-        <h3>✅ Todos os Usuários</h3>
-        <div id="listaUsuarios"></div>
-      </div>
-    </div>
-
-    <div id="pedidos" class="aba">
-      <div class="card">
-        <h3>📦 Pedidos — Aguardando Confirmação do PIX</h3>
-        <div id="listaPedidos"></div>
-      </div>
-    </div>
-
-    <div id="financeiro" class="aba">
-      <div class="card">
-        <h3>💰 Resumo Financeiro</h3>
-        <p style="font-size:17px; margin:8px 0;">Total de entregas concluídas: <strong id="totalEntregas">0</strong></p>
-        <p style="font-size:17px; margin:8px 0;">Sua receita (R$2,00 por entrega): <span class="valor-destaque" id="suaReceita">R$ 0,00</span></p>
-        <p style="font-size:15px; margin:8px 0; color:#666;">Total repassado aos motoboys: <span id="totalMotoboys">R$ 0,00</span></p>
-        <hr style="margin:15px 0;">
-        <h4>📋 Histórico Completo</h4>
-        <div id="historicoFinanceiro"></div>
-      </div>
-    </div>
+  <div class="aviso">
+    💡 Apenas pedidos com PIX confirmado aparecem aqui. Clique para aceitar!
   </div>
 
-  <!-- 🔹 Tela do RESTAURANTE -->
-  <div id="areaRestaurante" class="oculto">
-    <div class="boasvindas">
-      <h2>🍽️ Área do Restaurante</h2>
-      <p>Solicite um motoboy para sua entrega</p>
-    </div>
-    <div class="card">
-      <h3>🚚 Solicitar Motoboy</h3>
-      <input type="text" id="enderecoEntrega" placeholder="Endereço completo de entrega">
-      <input type="text" id="valorPedido" placeholder="Valor do seu pedido (opcional)">
-      
-      <div class="pix-info">
-        <strong>💳 Valor da entrega: R$ 10,00</strong><br>
-        Pague via PIX. Após confirmação, o motoboy é avisado automaticamente!
-      </div>
-      
-      <button onclick="solicitarMotoboy()">Solicitar Motoboy</button>
-    </div>
-    
-    <div class="card">
-      <h3>📋 Meus Pedidos</h3>
-      <div id="meusPedidos"></div>
-    </div>
+  <div id="lista-pedidos">
+    <p class="sem-dados">Carregando...</p>
   </div>
 
-  <!-- 🔹 Tela do MOTOBOY -->
-  <div id="areaMotoboy" class="oculto">
-    <div class="boasvindas">
-      <h2>🏍️ Área do Motoboy</h2>
-      <p>Pedidos disponíveis para você</p>
-    </div>
-    
-    <div class="card">
-      <h3>💰 Meus Ganhos</h3>
-      <p style="font-size:20px; margin:10px 0;">Valor por entrega: <strong class="valor-destaque valor-motoboy">R$ 8,00</strong></p>
-      <p>Total disponível: <span class="valor-destaque" id="totalGanhosMotoboy">R$ 0,00</span></p>
-    </div>
-    
-    <div id="pedidosDisponiveis"></div>
-  </div>
-</div>
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyBD9qiDcnYQJDGn850KUkMpiBatuP0DWT8",
+      authDomain: "motoflash-b1396.firebaseapp.com",
+      projectId: "motoflash-b1396",
+      storageBucket: "motoflash-b1396.firebasestorage.app",
+      messagingSenderId: "709365607477",
+      appId: "1:709365607477:web:5a83bf82fafef1ca9e957c"
+    };
 
-<script>
-const firebaseConfig = {
-  apiKey: "AIzaSyBD9qiDcnYQJDGn850KUkMpiBatuP0DWT8",
-  authDomain: "motoflash-b1396.firebaseapp.com",
-  projectId: "motoflash-b1396",
-  storageBucket: "motoflash-b1396.firebasestorage.app",
-  messagingSenderId: "709365607477",
-  appId: "1:709365607477:web:5a83b8c5e46a6b7c8d9e0f"
-};
-firebase.initializeApp(firebaseConfig);
-const auth = firebase.auth();
-const db = firebase.firestore();
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
 
-let usuarioAtual = null;
+    function sair() {
+      auth.signOut().then(() => window.location.reload());
+    }
 
-auth.onAuthStateChanged(async (user) => {
-  if (!user) { window.location.href = 'index.html'; return; }
-  try {
-    const doc = await db.collection('usuarios').doc(user.uid).get();
-    if (!doc.exists) { await auth.signOut(); window.location.href = 'index.html'; return; }
-    usuarioAtual = { uid: user.uid, ...doc.data() };
-    mostrarTelaCorreta();
-  } catch (e) { console.error(e); alert('Erro: ' + e.message); }
-});
-
-function mostrarTelaCorreta() {
-  document.getElementById('telaCarregando').style.display = 'none';
-  document.getElementById('conteudo').classList.remove('oculto');
-  document.getElementById('nomeUsuario').textContent = usuarioAtual.Nome;
-  
-  const tipo = usuarioAtual.Tipo;
-  
-  if (tipo === 'dono') {
-    document.getElementById('areaDono').classList.remove('oculto');
-    document.getElementById('tituloPagina').textContent = '🏍️ Painel do Dono';
-    carregarUsuarios();
-    carregarPedidosPendentes();
-    carregarFinanceiro();
-  } else if (tipo === 'restaurante') {
-    document.getElementById('areaRestaurante').classList.remove('oculto');
-    document.getElementById('tituloPagina').textContent = '🍽️ Restaurante';
-    carregarMeusPedidos();
-  } else if (tipo === 'motoboy') {
-    document.getElementById('areaMotoboy').classList.remove('oculto');
-    document.getElementById('tituloPagina').textContent = '🏍️ Motoboy';
-    carregarPedidosDisponiveis();
-    carregarMeusGanhos();
-  }
-}
-
-function sair() {
-  auth.signOut().then(() => {
-    localStorage.removeItem('usuarioLogado');
-    window.location.href = 'index.html';
-  });
-}
-
-function mostrarAba(nome) {
-  document.querySelectorAll('.aba').forEach(a => a.classList.remove('mostra'));
-  document.querySelectorAll('.tab').forEach(t => t.classList.remove('ativa'));
-  document.getElementById(nome).classList.add('mostra');
-  event.target.classList.add('ativa');
-}
-
-// ========== FUNÇÕES DO DONO ==========
-async function carregarUsuarios() {
-  const snap = await db.collection('usuarios').orderBy('DataCadastro', 'desc').get();
-  
-  document.getElementById('listaUsuarios').innerHTML = snap.empty
-    ? '<p class="vazio">Nenhum usuário cadastrado ainda.</p>'
-    : snap.docs.map(doc => {
-        const u = doc.data();
-        return `
-          <div style="padding:12px; border-bottom:1px solid #eee;">
-            <strong>${u.Nome}</strong>
-            <span class="status ativo" style="margin-left:8px;">ATIVO</span>
-            <p style="font-size:13px; color:#666;">${u.Email} — ${u.Tipo === 'restaurante' ? '🍽️ Restaurante' : u.Tipo === 'motoboy' ? '🏍️ Motoboy' : '👨‍💼 Dono'}</p>
-          </div>
-        `;
-      }).join('');
-}
-
-async function carregarPedidosPendentes() {
-  const snap = await db.collection('pedidos')
-    .where('status', '==', 'aguardando-pix')
-    .orderBy('data', 'desc').get();
-  
-  document.getElementById('listaPedidos').innerHTML = snap.empty
-    ? '<p class="vazio">Nenhum pedido aguardando confirmação de PIX ✅</p>'
-    : snap.docs.map(doc => {
-        const p = { id: doc.id, ...doc.data() };
-        return `
-          <div class="pedido">
-            <p><strong>Restaurante:</strong> ${p.nomeRestaurante}</p>
-            <p><strong>Entrega:</strong> ${p.endereco}</p>
-            <p><strong>Valor total:</strong> R$ 10,00</p>
-            <p>💰 Sua parte: <strong>R$ 2,00</strong> | 🏍️ Motoboy recebe: <strong>R$ 8,00</strong></p>
-            <button class="sucesso" onclick="confirmarPix('${p.id}')">✅ PIX CONFIRMADO — Liberar</button>
-          </div>
-        `;
-      }).join('');
-}
-
-async function confirmarPix(idPedido) {
-  if (!confirm('Confirma que o PIX foi recebido?')) return;
-  
-  const pedidoRef = db.collection('pedidos').doc(idPedido);
-  const pedidoDoc = await pedidoRef.get();
-  const pedido = pedidoDoc.data();
-  
-  await db.runTransaction(async (tx) => {
-    tx.update(pedidoRef, {
-      status: 'disponivel',
-      dataPixConfirmado: new Date().toISOString(),
-      confirmadoPor: usuarioAtual.Nome
+    auth.onAuthStateChanged(user => {
+      if (!user) {
+        document.getElementById("lista-pedidos").innerHTML = 
+          '<p class="sem-dados">Faça login para ver os pedidos.</p>';
+        return;
+      }
+      carregarPedidos();
     });
-    
-    tx.collection('historico').add({
-      idPedido: idPedido,
-      restaurante: pedido.nomeRestaurante,
-      endereco: pedido.endereco,
-      taxaDono: 2.00,
-      valorMotoboy: 8.00,
-      data: new Date().toISOString(),
-      status: 'concluido'
-    });
-  });
-  
-  alert('✅ PIX confirmado! Pedido disponível para os motoboys!');
-  carregarPedidosPendentes();
-  carregarFinanceiro();
-}
 
-async function carregarFinanceiro() {
-  const snap = await db.collection('historico').orderBy('data', 'desc').get();
-  const totalEntregas = snap.size;
-  const totalDono = snap.docs.reduce((s, d) => s + (d.data().taxaDono || 0), 0);
-  const totalMotoboys = snap.docs.reduce((s, d) => s + (d.data().valorMotoboy || 0), 0);
-  
-  document.getElementById('totalEntregas').textContent = totalEntregas;
-  document.getElementById('suaReceita').textContent = `R$ ${totalDono.toFixed(2)}`;
-  document.getElementById('totalMotoboys').textContent = `R$ ${totalMotoboys.toFixed(2)}`;
-  
-  document.getElementById('historicoFinanceiro').innerHTML = snap.empty
-    ? '<p class="vazio">Nenhuma entrega concluída ainda.</p>'
-    : snap.docs.map(doc => {
-        const h = doc.data();
-        const data = new Date(h.data).toLocaleString('pt-BR');
-        return `
-          <div style="padding:8px 0; border-bottom:1px solid #eee; font-size:14px;">
-            <strong>${data}</strong> — ${h.restaurante}<br>
-            Sua parte: R$ ${h.taxaDono.toFixed(2)} | Motoboy: R$ ${h.valorMotoboy.toFixed(2)}
-          </div>
-        `;
-      }).join('');
-}
+    function carregarPedidos() {
+      db.collection("pedidos")
+        .where("status", "==", "confirmado")
+        .orderBy("data", "desc")
+        .onSnapshot(snapshot => {
+          const lista = document.getElementById("lista-pedidos");
+          lista.innerHTML = "";
 
-// ========== FUNÇÕES DO RESTAURANTE ==========
-async function solicitarMotoboy() {
-  const endereco = document.getElementById('enderecoEntrega').value;
-  const valor = document.getElementById('valorPedido').value || '---';
-  
-  if (!endereco) return alert('Digite o endereço de entrega!');
-  
-  await db.collection('pedidos').add({
-    uidRestaurante: usuarioAtual.uid,
-    nomeRestaurante: usuarioAtual.Nome,
-    endereco: endereco,
-    valorPedido: valor,
-    status: 'aguardando-pix',
-    data: new Date().toISOString()
-  });
-  
-  alert('✅ Solicitação enviada! Efetue o PIX de R$ 10,00 e avise o dono para confirmar.');
-  document.getElementById('enderecoEntrega').value = '';
-  document.getElementById('valorPedido').value = '';
-  carregarMeusPedidos();
-}
+          if (snapshot.empty) {
+            lista.innerHTML = '<p class="sem-dados">Nenhum pedido disponível no momento.<br>Volte mais tarde!</p>';
+            return;
+          }
 
-async function carregarMeusPedidos() {
-  const snap = await db.collection('pedidos')
-    .where('uidRestaurante', '==', usuarioAtual.uid)
-    .orderBy('data', 'desc').limit(10).get();
-  
-  document.getElementById('meusPedidos').innerHTML = snap.empty
-    ? '<p class="vazio">Nenhum pedido solicitado.</p>'
-    : snap.docs.map(doc => {
-        const p = doc.data();
-        const statusTexto = {
-          'aguardando-pix': '⏳ Aguardando confirmação do PIX',
-          'disponivel': '🏍️ Disponível para motoboy',
-          'aceito': '✅ Motoboy a caminho',
-          'concluido': '✅ Entregue'
-        };
-        return `
-          <div style="padding:12px; border-bottom:1px solid #eee;">
-            <p><strong>Entrega:</strong> ${p.endereco}</p>
-            <p><strong>Status:</strong> ${statusTexto[p.status] || p.status}</p>
-            <p style="font-size:13px; color:#666;">${new Date(p.data).toLocaleString('pt-BR')}</p>
-          </div>
-        `;
-      }).join('');
-}
+          snapshot.forEach(doc => {
+            const p = doc.data();
+            const id = doc.id;
+            const data = p.data ? new Date(p.data.toDate()).toLocaleString('pt-BR') : "Sem data";
 
-// ========== FUNÇÕES DO MOTOBOY ==========
-async function carregarPedidosDisponiveis() {
-  const snap = await db.collection('pedidos')
-    .where('status', '==', 'disponivel')
-    .orderBy('data', 'desc').get();
-  
-  document.getElementById('pedidosDisponiveis').innerHTML = snap.empty
-    ? '<p class="vazio">Nenhum pedido disponível no momento. Volte mais tarde! 🏍️</p>'
-    : snap.docs.map(doc => {
-        const p = { id: doc.id, ...doc.data() };
-        return `
-          <div class="pedido">
-            <p><strong>Restaurante:</strong> ${p.nomeRestaurante}</p>
-            <p><strong>Entrega:</strong> ${p.endereco}</p>
-            <p><strong>Seu ganho:</strong> <span class="valor-destaque valor-motoboy">R$ 8,00</span></p>
-            <button class="sucesso" onclick="aceitarPedido('${p.id}')">✅ Aceitar Entrega</button>
-          </div>
-        `;
-      }).join('');
-}
+            lista.innerHTML += `
+              <div class="pedido">
+                <h3>📍 ${p.restaurante || "Restaurante"}</h3>
+                <p><strong>Endereço:</strong> ${p.endereco || "Não informado"}</p>
+                <p><strong>Valor total:</strong> R$ ${(p.valorTotal || 0).toFixed(2).replace('.', ',')}</p>
+                <p><strong>Sua parte:</strong> R$ ${(p.valorMoto || 0).toFixed(2).replace('.', ',')}</p>
+                <p><strong>Data:</strong> ${data}</p>
+                <button class="btn" onclick="aceitarPedido('${id}')">✅ Aceitar Entrega</button>
+              </div>
+            `;
+          });
+        }, erro => {
+          console.error("Erro:", erro);
+          document.getElementById("lista-pedidos").innerHTML = 
+            '<p class="sem-dados" style="color:red">Erro ao carregar. Atualize a página.</p>';
+        });
+    }
 
-async function aceitarPedido(idPedido) {
-  if (!confirm('Deseja aceitar essa entrega? Você receberá R$ 8,00')) return;
-  
-  await db.collection('pedidos').doc(idPedido).update({
-    status: 'aceito',
-    uidMotoboy: usuarioAtual.uid,
-    nomeMotoboy: usuarioAtual.Nome,
-    dataAceito: new Date()
-  });
-
-  alert('✅ Entrega aceita! Boa viagem! 🏍️');
-  carregarPedidosDisponiveis();
-}
-
-async function carregarMeusGanhos() {
-  const snap = await db.collection('historico')
-    .where('uidMotoboy', '==', usuarioAtual.uid)
-    .get();
-  
-  const total = snap.docs.reduce((s, d) => s + (d.data().valorMotoboy || 0), 0);
-  document.getElementById('totalGanhosMotoboy').textContent = `R$ ${total.toFixed(2)}`;
-}
-</script>
+    window.aceitarPedido = function(id) {
+      if (confirm("Tem certeza que deseja aceitar essa entrega?")) {
+        db.collection("pedidos").doc(id).update({
+          status: "aceito",
+          motoboyId: auth.currentUser.uid,
+          motoboyNome: auth.currentUser.displayName || "Motoboy",
+          dataAceite: firebase.firestore.FieldValue.serverTimestamp()
+        })
+        .then(() => alert("✅ Pedido aceito! Boa entrega! 🏍️"))
+        .catch(err => alert("❌ Erro: " + err.message));
+      }
+    }
+  </script>
 </body>
 </html>
-
