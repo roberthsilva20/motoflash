@@ -89,6 +89,52 @@
     }
 
     async function fazerLogin() {
+  const email = document.getElementById('email-login').value.trim();
+  const senha = document.getElementById('senha-login').value;
+  const msgId = 'msg-login';
+
+  if (!email || !senha) {
+    mostrarMensagem(msgId, '⚠️ Preencha e-mail e senha', 'erro');
+    return;
+  }
+
+  try {
+    mostrarMensagem(msgId, '⏳ Entrando...', 'sucesso');
+    const userCred = await auth.signInWithEmailAndPassword(email, senha);
+    const user = userCred.user;
+    
+    // ⚠️ IMPORTANTE: Busca o tipo de usuário no Firestore
+    const doc = await db.collection('usuarios').doc(user.uid).get();
+    
+    if (!doc.exists) {
+      mostrarMensagem(msgId, '❌ Usuário não cadastrado.', 'erro');
+      return;
+    }
+
+    const dados = doc.data();
+    console.log('Tipo de usuário:', dados.tipo); // Para debug
+    mostrarMensagem(msgId, '✅ Entrando...', 'sucesso');
+    
+    setTimeout(() => {
+      if (dados.tipo === 'motoboy') {
+        window.location.href = 'painel.html';
+      } else if (dados.tipo === 'restaurante') {
+        window.location.href = 'restaurante.html';
+      } else {
+        alert('❌ Tipo de usuário não identificado');
+      }
+    }, 600);
+    
+  } catch (erro) {
+    console.error('Erro no login:', erro);
+    let texto = '❌ Erro ao entrar';
+    if (erro.code === 'auth/user-not-found') texto = '❌ Usuário não encontrado';
+    else if (erro.code === 'auth/wrong-password') texto = '❌ Senha incorreta';
+    else if (erro.code === 'auth/invalid-email') texto = '❌ E-mail inválido';
+    mostrarMensagem(msgId, texto, 'erro');
+  }
+}
+
       const email = document.getElementById('email-login').value.trim();
       const senha = document.getElementById('senha-login').value;
       const msgId = 'msg-login';
