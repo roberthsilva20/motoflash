@@ -20,7 +20,6 @@
     select { width: 100%; padding: 14px; margin-bottom: 15px; border: 1px solid #ddd; border-radius: 8px; font-size: 16px; background: white; }
     button.entrar { width: 100%; padding: 14px; background: #22c55e; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 10px; }
     button.entrar:hover { background: #16a34a; }
-    button.entrar:disabled { background: #999; cursor: not-allowed; }
     .mensagem { margin-top: 15px; text-align: center; font-size: 14px; min-height: 20px; }
     .erro { color: #ef4444; }
     .sucesso { color: #22c55e; }
@@ -116,13 +115,10 @@
         if (dados.tipo === 'motoboy') {
           mostrarMensagem(msgId, '✅ Entrando...', 'sucesso');
           setTimeout(() => {
-            window.location.href = 'painel.html';
-          }, 800);
+            window.location.href = 'https://roberthsilva20.github.io/motoflash/painel.html';
+          }, 600);
         } else if (dados.tipo === 'restaurante') {
           mostrarMensagem(msgId, '✅ Bem-vindo, Restaurante!', 'sucesso');
-          // Aqui você coloca o painel do restaurante quando tiver
-        } else {
-          mostrarMensagem(msgId, '✅ Login realizado!', 'sucesso');
         }
       } catch (erro) {
         console.error('Erro de login:', erro);
@@ -130,7 +126,6 @@
         if (erro.code === 'auth/user-not-found') texto = '❌ Usuário não encontrado';
         else if (erro.code === 'auth/wrong-password') texto = '❌ Senha incorreta';
         else if (erro.code === 'auth/invalid-email') texto = '❌ E-mail inválido';
-        else if (erro.code === 'auth/network-request-failed') texto = '❌ Sem conexão com a internet';
         mostrarMensagem(msgId, texto, 'erro');
       }
     }
@@ -166,7 +161,7 @@
           ativo: true
         });
 
-        mostrarMensagem(msgId, '✅ Conta criada com sucesso! Faça login abaixo.', 'sucesso');
+        mostrarMensagem(msgId, '✅ Conta criada! Faça login abaixo.', 'sucesso');
         setTimeout(() => mostrarAba('login'), 1500);
       } catch (erro) {
         console.error('Erro de cadastro:', erro);
