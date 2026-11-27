@@ -34,7 +34,6 @@
     .erro { color: #dc2626; font-size: 14px; margin-top: 5px; display: none; }
     .sair-btn { background: transparent; color: #888; border: none; font-size: 14px; text-align: right; cursor: pointer; width: auto; }
     .alerta-som { position: fixed; top: 0; left: 0; right: 0; background: #16a34a; color: white; padding: 12px; text-align: center; font-weight: bold; z-index: 9999; display: none; }
-    .carregando { text-align: center; padding: 10px; color: #666; display: none; }
   </style>
 </head>
 <body>
@@ -48,7 +47,6 @@
 <div class="container" id="paginaLogin">
   <div class="card">
     <h2>Bem-vindo!</h2>
-    <div id="carregandoLogin" class="carregando">Conectando...</div>
     <input type="email" id="email" placeholder="Seu e-mail">
     <input type="password" id="senha" placeholder="Sua senha">
     <button class="btn-primary" id="btnEntrar">Entrar</button>
@@ -65,13 +63,11 @@
     <input type="text" id="nomeCompleto" placeholder="Seu nome completo">
     <input type="email" id="cadEmail" placeholder="Seu e-mail">
     <input type="password" id="cadSenha" placeholder="Crie uma senha">
-    
     <p style="margin-top:15px; font-weight:bold;">Eu sou:</p>
     <div class="tipo-row">
       <button class="tipo-btn" id="btnRestaurante">🍽️ Restaurante</button>
       <button class="tipo-btn" id="btnMotoboy">🏍️ Motoboy</button>
     </div>
-    
     <button class="btn-primary" id="btnCriarConta">Criar minha conta</button>
     <button class="btn-secondary" id="btnVoltarLogin">Voltar</button>
   </div>
@@ -83,33 +79,26 @@
   </div>
   <div class="card">
     <h2>🍽️ Novo Pedido de Entrega</h2>
-    
     <div class="aviso">
       ⚠️ <strong>Valor mínimo da entrega: R$ 7,00</strong>
     </div>
-    
     <label style="font-weight:bold;">Endereço de entrega:</label>
     <textarea id="endereco" placeholder="Rua, número, bairro, referência..." rows="2"></textarea>
-    
     <label style="font-weight:bold;">Valor total da entrega (R$):</label>
     <input type="number" id="valorTotal" placeholder="Mínimo R$ 7,00" min="7" step="0.01">
     <div id="erroValor" class="erro">❌ Valor mínimo é R$ 7,00</div>
-    
     <div class="resumo" id="resumoDiv" style="display:none;">
       💰 Valor total: <strong>R$ <span id="resumoTotal">0,00</span></strong><br>
       💸 Taxa de serviço (20%): R$ <span id="resumoTaxa">0,00</span><br>
       🏍️ Motoboy recebe: R$ <span id="resumoMotoboy">0,00</span>
     </div>
-    
     <div class="pix-box">
       <strong>💵 PIX para pagamento:</strong><br>
       <code style="font-size:14px; background:#eee; padding:6px 10px; border-radius:4px; display:inline-block; margin:8px 0;">35.377.564/0001-22</code><br>
       <small>CNPJ — Motoflash Serviços de Entrega</small>
     </div>
-    
     <button class="btn-primary" id="btnEnviarPedido">📤 Enviar Pedido</button>
   </div>
-  
   <div class="card">
     <h3>📋 Meus Pedidos</h3>
     <div id="listaMeusPedidos"></div>
@@ -146,7 +135,6 @@ let ultimoStatusAceito = {};
 let listenerPedidos = null;
 let listenerMeusPedidos = null;
 
-// Funções auxiliares
 function tocarSomAviso() {
   try {
     const som = new Audio('https://assets.mixkit.co/sfx/preview/mixkit-software-interface-start-2574.mp3');
@@ -184,7 +172,6 @@ function escolherTipo(tipo) {
   document.getElementById('btnMotoboy').classList.toggle('active', tipo === 'motoboy');
 }
 
-// Funções principais
 async function criarConta() {
   const nome = document.getElementById('nomeCompleto').value.trim();
   const email = document.getElementById('cadEmail').value.trim();
@@ -303,14 +290,14 @@ async function criarPedido() {
   document.getElementById('resumoDiv').style.display = 'none';
 }
 
-async function aceitarPedido(idPedido) {
+window.aceitarPedido = async function(idPedido) {
   await db.collection('pedidos').doc(idPedido).update({
     status: 'aceito',
     motoboyId: usuarioId,
     dataAceito: new Date().toISOString()
   });
   alert('✅ Pedido aceito! Boa entrega! 🏍️💨');
-}
+};
 
 function ativarListenerPedidosDisponiveis() {
   listenerPedidos = db.collection('pedidos')
@@ -370,4 +357,18 @@ function ativarListenerMeusPedidos() {
             }[p.status] || p.status;
             return `
               <div class="pedido-card">
-                <strong>${p.end
+                <strong>${p.endereco}</strong><br>
+                💰 Valor: R$ ${p.valorTotal.toFixed(2)}<br>
+                Status: <strong>${statusText}</strong>
+              </div>
+            `;
+          }).join('');
+    });
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  document.getElementById('btnIrCadastro').addEventListener('click', function() {
+    mostrarPagina('paginaCadastro');
+  });
+  document.getElementById('btnRestaurante').addEventListener('click', function() {
+    escolherTipo('restaurante');
