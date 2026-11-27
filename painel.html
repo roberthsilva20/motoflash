@@ -10,7 +10,10 @@
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: Arial, sans-serif; }
     body { background: #f4f4f4; padding: 15px; }
-    header { background: #111; color: white; padding: 15px; border-radius: 10px; margin-bottom: 20px; text-align: center; }
+    header { background: #111; color: white; padding: 15px; border-radius: 10px; margin-bottom: 15px; text-align: center; }
+    .abas { display: flex; gap: 10px; margin-bottom: 20px; }
+    .aba-btn { flex: 1; padding: 10px; border: none; border-radius: 6px; background: #ddd; cursor: pointer; font-size: 15px; }
+    .aba-btn.ativo { background: #22c55e; color: white; font-weight: bold; }
     .aviso { background: #dbeafe; padding: 12px; border-radius: 6px; margin-bottom: 15px; border-left: 4px solid #3b82f6; }
     .pedido { background: white; padding: 15px; border-radius: 10px; margin-bottom: 12px; border-left: 4px solid #22c55e; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
     .pedido h3 { font-size: 16px; margin-bottom: 10px; color: #222; }
@@ -18,20 +21,45 @@
     .btn { background: #22c55e; color: white; border: none; padding: 10px 15px; border-radius: 6px; cursor: pointer; font-weight: bold; width: 100%; font-size: 15px; margin-top: 8px; }
     .sair { background: #666; color: white; border: none; padding: 8px 15px; border-radius: 6px; cursor: pointer; margin-bottom: 15px; }
     .sem-dados { color: #666; font-style: italic; text-align: center; padding: 40px 20px; }
+    .ganhos-card { background: white; padding: 20px; border-radius: 10px; margin-bottom: 20px; text-align: center; border-left: 4px solid #22c55e; }
+    .ganhos-valor { font-size: 32px; font-weight: bold; color: #22c55e; margin: 10px 0; }
+    .ganhos-info { color: #666; font-size: 14px; }
+    .historico-item { background: white; padding: 12px; border-radius: 8px; margin-bottom: 8px; border-left: 3px solid #22c55e; }
+    .data-pequena { font-size: 12px; color: #888; margin-top: 4px; }
+    .oculto { display: none !important; }
   </style>
 </head>
 <body>
   <button class="sair" onclick="sair()">← Sair</button>
 
   <header>
-    <h1>🏍️ Pedidos Disponíveis</h1>
+    <h1 id="nome-usuario">🏍️ Motoflash</h1>
   </header>
 
-  <div class="aviso">
-    💡 Apenas pedidos com PIX confirmado aparecem aqui. Clique para aceitar!
+  <!-- Abas -->
+  <div class="abas">
+    <button class="aba-btn ativo" id="aba-pedidos" onclick="mostrarAba('pedidos')">📋 Pedidos</button>
+    <button class="aba-btn" id="aba-ganhos" onclick="mostrarAba('ganhos')">💰 Meus Ganhos</button>
   </div>
 
-  <div id="lista-pedidos"><p class="sem-dados">Carregando...</p></div>
+  <!-- Área de Pedidos Disponíveis -->
+  <div id="area-pedidos">
+    <div class="aviso">
+      💡 Apenas pedidos com PIX confirmado aparecem aqui. Clique para aceitar!
+    </div>
+    <div id="lista-pedidos"><p class="sem-dados">Carregando...</p></div>
+  </div>
+
+  <!-- Área de Meus Ganhos -->
+  <div id="area-ganhos" class="oculto">
+    <div class="ganhos-card">
+      <p>💰 Total recebido</p>
+      <div class="ganhos-valor" id="valor-total">R$ 0,00</div>
+      <p class="ganhos-info" id="qtd-entregas">0 entregas concluídas</p>
+    </div>
+    <h3 style="margin-bottom:10px">📝 Histórico de entregas</h3>
+    <div id="lista-historico"><p class="sem-dados">Nenhuma entrega concluída ainda.</p></div>
+  </div>
 
   <script>
     const firebaseConfig = {
@@ -46,17 +74,30 @@
     firebase.initializeApp(firebaseConfig);
     const auth = firebase.auth();
     const db = firebase.firestore();
+    let usuarioId = null;
 
     function sair() {
       auth.signOut().then(() => window.location.href = "index.html");
     }
 
+    function mostrarAba(nome) {
+      document.getElementById('area-pedidos').classList.toggle('oculto', nome !== 'pedidos');
+      document.getElementById('area-ganhos').classList.toggle('oculto', nome !== 'ganhos');
+      document.getElementById('aba-pedidos').classList.toggle('ativo', nome === 'pedidos');
+      document.getElementById('aba-ganhos').classList.toggle('ativo', nome === 'ganhos');
+      
+      if (nome === 'ganhos' && usuarioId) {
+        carregarGanhos();
+      }
+    }
+
     auth.onAuthStateChanged(user => {
       if (!user) {
-        document.getElementById("lista-pedidos").innerHTML = 
-          '<p class="sem-dados">Faça login para ver os pedidos.</p>';
+        window.location.href = "index.html";
         return;
       }
+      usuarioId = user.uid;
+      document.getElementById('nome-usuario').innerHTML = `🏍️ Olá, ${user.displayName || 'Motoboy'}!`;
       carregarPedidos();
     });
 
@@ -77,8 +118,6 @@
           
           snapshot.forEach(doc => {
             const p = doc.data();
-            
-            // Só mostra se ainda não foi aceito por ninguém
             if (!p.motoboyId) {
               temPedido = true;
               const data = p.data ? new Date(p.data.toDate()).toLocaleString('pt-BR') : "Sem data";
@@ -88,43 +127,4 @@
                   <h3>📍 ${p.restaurante || "Restaurante"}</h3>
                   <p><strong>Endereço:</strong> ${p.endereco || "Não informado"}</p>
                   <p><strong>Valor total:</strong> R$ ${(p.valorTotal || 0).toFixed(2).replace('.', ',')}</p>
-                  <p><strong>Sua parte:</strong> R$ ${(p.valorMoto || 0).toFixed(2).replace('.', ',')}</p>
-                  <p><strong>Data:</strong> ${data}</p>
-                  <button class="btn" onclick="aceitarPedido('${doc.id}')">✅ Aceitar Entrega</button>
-                </div>
-              `;
-            }
-          });
-
-          if (!temPedido) {
-            lista.innerHTML = '<p class="sem-dados">Nenhum pedido disponível no momento.<br>Volte mais tarde!</p>';
-          }
-        });
-    }
-
-    window.aceitarPedido = function(id) {
-      if (!confirm("Tem certeza que deseja aceitar essa entrega?")) return;
-      
-      const user = auth.currentUser;
-      if (!user) {
-        alert("❌ Você precisa estar logado!");
-        return;
-      }
-      
-      db.collection("pedidos").doc(id).update({
-        status: "aceito",
-        motoboyId: user.uid,
-        motoboyNome: user.displayName || "Motoboy",
-        dataAceite: firebase.firestore.FieldValue.serverTimestamp()
-      })
-      .then(() => {
-        alert("✅ Pedido aceito! Boa entrega! 🏍️");
-        // A tela atualiza sozinha graças ao onSnapshot
-      })
-      .catch(err => {
-        alert("❌ Erro: " + err.message);
-      });
-    }
-  </script>
-</body>
-</html>
+                  <p><strong>S
