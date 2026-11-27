@@ -11,14 +11,11 @@
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: Arial, sans-serif; }
     body { background: #f4f4f4; padding: 15px; }
     header { background: #111; color: white; padding: 15px; border-radius: 10px; margin-bottom: 20px; text-align: center; }
-    .aviso { background: #dbeafe; padding: 12px; border-radius: 6px; margin-bottom: 15px; border-left: 4px solid #3b82f6; }
-    .pedido { background: white; padding: 15px; border-radius: 10px; margin-bottom: 12px; border-left: 4px solid #22c55e; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-    .pedido h3 { font-size: 16px; margin-bottom: 10px; color: #222; }
-    .pedido p { margin-bottom: 6px; color: #444; font-size: 14px; }
+    .pedido { background: white; padding: 15px; border-radius: 10px; margin-bottom: 12px; border-left: 4px solid #22c55e; }
     .btn { background: #22c55e; color: white; border: none; padding: 10px 15px; border-radius: 6px; cursor: pointer; font-weight: bold; width: 100%; font-size: 15px; margin-top: 8px; }
     .sair { background: #666; color: white; border: none; padding: 8px 15px; border-radius: 6px; cursor: pointer; margin-bottom: 15px; }
-    .sem-dados { color: #666; font-style: italic; text-align: center; padding: 40px 20px; }
-    .info { background: #fef3c7; padding: 10px; border-radius: 6px; margin-bottom: 10px; font-size: 13px; }
+    .mensagem { text-align: center; padding: 30px; color: #666; }
+    .erro { background: #fee; color: red; padding: 15px; border-radius: 6px; margin-bottom: 15px; }
   </style>
 </head>
 <body>
@@ -28,12 +25,8 @@
     <h1>🏍️ Pedidos Disponíveis</h1>
   </header>
 
-  <div class="aviso">
-    💡 Apenas pedidos com PIX confirmado aparecem aqui. Clique para aceitar!
-  </div>
-
-  <div id="info" class="info" style="display:none;"></div>
-  <div id="lista-pedidos"><p class="sem-dados">Carregando...</p></div>
+  <div id="aviso"></div>
+  <div id="lista"><div class="mensagem">Carregando...</div></div>
 
   <script>
     const firebaseConfig = {
@@ -50,84 +43,69 @@
     const db = firebase.firestore();
 
     function sair() {
-      auth.signOut().then(() => window.location.reload());
+      auth.signOut().then(() => window.location.href = "index.html");
     }
 
-    auth.onAuthStateChanged(user => {
-      const info = document.getElementById("info");
-      const lista = document.getElementById("lista-pedidos");
-      
-      if (!user) {
-        lista.innerHTML = '<p class="sem-dados">Faça login para ver os pedidos.</p>';
-        return;
-      }
-      
-      info.style.display = "block";
-      info.innerHTML = "✅ Logado: " + user.email + " — Buscando pedidos...";
-      carregarPedidos();
-    });
-
-    function carregarPedidos() {
-      const info = document.getElementById("info");
-      const lista = document.getElementById("lista-pedidos");
+    function mostrarPedidos(user) {
+      const aviso = document.getElementById("aviso");
+      const lista = document.getElementById("lista");
       
       db.collection("pedidos").get()
         .then(snapshot => {
-          info.innerHTML = "✅ Encontrados " + snapshot.size + " pedidos no total";
+          aviso.innerHTML = `<div style="background:#dcfce7;padding:10px;border-radius:6px;margin-bottom:15px;">✅ Conectado! ${snapshot.size} pedidos encontrados</div>`;
           lista.innerHTML = "";
           
           if (snapshot.empty) {
-            lista.innerHTML = '<p class="sem-dados">Nenhum pedido cadastrado ainda.</p>';
+            lista.innerHTML = '<div class="mensagem">Nenhum pedido disponível no momento.</div>';
             return;
           }
 
-          let temDisponivel = false;
-          
+          let temPedido = false;
           snapshot.forEach(doc => {
             const p = doc.data();
-            
             if (p.status === "confirmado" && !p.motoboyId) {
-              temDisponivel = true;
-              const data = p.data ? new Date(p.data.toDate()).toLocaleString('pt-BR') : "Sem data";
-              
+              temPedido = true;
               lista.innerHTML += `
                 <div class="pedido">
                   <h3>📍 ${p.restaurante || "Restaurante"}</h3>
-                  <p><strong>Endereço:</strong> ${p.endereco || "Não informado"}</p>
+                  <p><strong>Endereço:</strong> ${p.endereco || "-"}</p>
                   <p><strong>Valor total:</strong> R$ ${(p.valorTotal || 0).toFixed(2).replace('.', ',')}</p>
                   <p><strong>Sua parte:</strong> R$ ${(p.valorMoto || 0).toFixed(2).replace('.', ',')}</p>
-                  <p><strong>Data:</strong> ${data}</p>
-                  <button class="btn" onclick="aceitarPedido('${doc.id}')">✅ Aceitar Entrega</button>
+                  <button class="btn" onclick="aceitar('${doc.id}')">✅ Aceitar Entrega</button>
                 </div>
               `;
             }
           });
 
-          if (!temDisponivel) {
-            lista.innerHTML = '<p class="sem-dados">Nenhum pedido disponível no momento.<br>Volte mais tarde!</p>';
+          if (!temPedido) {
+            lista.innerHTML = '<div class="mensagem">Nenhum pedido disponível no momento.<br>Volte mais tarde!</div>';
           }
         })
         .catch(erro => {
-          info.innerHTML = "❌ ERRO: " + erro.message;
-          info.style.background = "#fee2e2";
-          info.style.borderLeft = "4px solid #ef4444";
-          lista.innerHTML = '<p class="sem-dados">Não foi possível carregar os pedidos.</p>';
+          aviso.innerHTML = `<div class="erro">❌ Erro: ${erro.message}</div>`;
+          lista.innerHTML = '<div class="mensagem">Não foi possível carregar os pedidos.</div>';
         });
     }
 
-    window.aceitarPedido = function(id) {
-      if (confirm("Tem certeza que deseja aceitar essa entrega?")) {
+    auth.onAuthStateChanged(user => {
+      if (!user) {
+        document.getElementById("aviso").innerHTML = '<div class="erro">⚠️ Você precisa fazer login primeiro. Redirecionando...</div>';
+        setTimeout(() => window.location.href = "index.html", 2000);
+        return;
+      }
+      mostrarPedidos(user);
+    });
+
+    window.aceitar = function(id) {
+      if (confirm("Aceitar essa entrega?")) {
         db.collection("pedidos").doc(id).update({
           status: "aceito",
           motoboyId: auth.currentUser.uid,
-          motoboyNome: auth.currentUser.displayName || "Motoboy",
-          dataAceite: firebase.firestore.FieldValue.serverTimestamp()
-        })
-        .then(() => {
-          alert("✅ Pedido aceito! Boa entrega! 🏍️");
-          carregarPedidos();
-        })
-        .catch(err => alert("❌ Erro: " + err.message));
+          motoboyNome: auth.currentUser.displayName || "Motoboy"
+        }).then(() => {
+          alert("✅ Pedido aceito!");
+          mostrarPedidos(auth.currentUser);
+        }).catch(err => alert("Erro: " + err.message));
       }
     }
   </script>
