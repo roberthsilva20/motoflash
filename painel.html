@@ -3,74 +3,49 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>🏍️ Motoflash — Painel Motoboy</title>
+  <title>🏍️ Motoflash - Painel Motoboy</title>
   <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore-compat.js"></script>
   <style>
     * { box-sizing: border-box; margin:0; padding:0; font-family: Arial, sans-serif; }
     body { background:#f4f4f4; padding:15px; }
-    header { background:#111; color:white; padding:16px; border-radius:10px; text-align:center; margin-bottom:20px; }
-    .abas { display:flex; gap:8px; margin-bottom:15px; flex-wrap:wrap; }
-    .btnAba { flex:1; min-width:90px; padding:10px; border:none; border-radius:6px; font-weight:bold; }
-    .btnAba.ativo { background:#22c55e; color:white; }
-    .card { background:white; padding:18px; border-radius:10px; margin-bottom:15px; }
-    h2 { font-size:18px; margin-bottom:12px; }
-    .pedido { border:1px solid #ddd; border-radius:8px; padding:14px; margin-bottom:12px; }
-    button { width:100%; padding:12px; border:none; border-radius:6px; background:#22c55e; color:white; font-weight:bold; font-size:15px; cursor:pointer; }
-    .sempedido { text-align:center; color:#777; padding:30px; }
-    .debug { background:#ffe4e6; padding:10px; border-radius:6px; margin-bottom:15px; }
-    .caixaGanho { background:#ecfdf5; padding:15px; border-radius:8px; margin-bottom:15px; }
-    .contatoDono { background:#dbeafe; padding:15px; border-radius:8px; margin-bottom:15px; }
-    input { width:100%; padding:10px; border:1px solid #ccc; border-radius:6px; margin:8px 0; }
+    header { background:#111; color:white; padding:16px; border-radius:10px; text-align:center; margin-bottom:15px; }
+    .resumo { background:#22c55e; color:white; padding:15px; border-radius:10px; margin-bottom:15px; }
+    .card { background:white; padding:15px; border-radius:10px; margin-bottom:15px; }
+    h2 { margin-bottom:10px; font-size:18px; }
+    .pedido { border:1px solid #ddd; border-radius:8px; padding:12px; margin-bottom:10px; }
+    button { width:100%; padding:12px; border:none; border-radius:8px; background:#2563eb; color:white; font-weight:bold; font-size:16px; }
+    .sempedido { text-align:center; color:#777; padding:20px; }
   </style>
 </head>
 <body>
   <header>
     <h1>🏍️ Painel do Motoboy</h1>
   </header>
-  <div class="debug">
-    <p>🔍 <span id="textoDebug"></span></p>
+
+  <div class="resumo">
+    <h2>📊 Meus Ganhos</h2>
+    <p>Total a receber: <strong id="totalGanho">R$ 0,00</strong></p>
+    <p>Quantidade de entregas: <strong id="qtdEntregas">0</strong></p>
   </div>
 
-  <!-- CAIXA COM O CONTATO DO DONO -->
-  <div class="contatoDono">
-    <h3>📞 Contato do Dono para Recebimento</h3>
-    <p>WhatsApp: <a id="linkZapDono" target="_blank">Clique aqui para chamar!</a></p>
-  </div>
-
-  <div class="caixaGanho">
-    <h3>💰 Meus Ganhos</h3>
-    <p><strong>Total já ganho:</strong> <span id="totalGanho">R$ 0,00</span></p>
-    <p><strong>Quantidade de entregas:</strong> <span id="qtdEntregas">0</span></p>
-    <label>📱 Seu número WhatsApp:</label>
-    <input type="text" id="campoZap" placeholder="Ex: 5527999999999">
-    <button onclick="salvarZap()" style="background:#3b82f6;">Salvar número do Zap</button>
-  </div>
-
-  <div class="abas">
-    <button class="btnAba ativo" onclick="trocarAba('disponiveis')">📦 Disponíveis</button>
-    <button class="btnAba" onclick="trocarAba('meusPedidos')">✅ Minhas Corridas</button>
-  </div>
-
-  <div id="areaDisponiveis" class="card">
-    <h2>Pedidos Disponíveis</h2>
-    <div id="listaPedidos">
+  <div class="card">
+    <h2>📋 Pedidos Disponíveis para Aceitar</h2>
+    <div id="listaDisponiveis">
       <p>Carregando...</p>
     </div>
   </div>
 
-  <div id="areaMeusPedidos" class="card" style="display:none;">
-    <h2>Histórico das minhas entregas</h2>
+  <div class="card">
+    <h2>📜 Meu Histórico de Corridas</h2>
     <div id="listaMeusPedidos">
       <p>Carregando...</p>
     </div>
   </div>
 
 <script>
-const numeroWhatsAppDono = "5532999231697";
-
-const firebaseConfig = {
+    const firebaseConfig = {
       apiKey: "AIzaSyBD9qiDcnYQJDGn850KUkMpiBatuP0DWT8",
       authDomain: "motoflash-b1396.firebaseapp.com",
       projectId: "motoflash-b1396",
@@ -79,126 +54,95 @@ const firebaseConfig = {
       appId: "1:709365607477:web:5a83bf82fafef1ca9e957c"
     };
 
-firebase.initializeApp(firebaseConfig);
-const auth = firebase.auth();
-const db = firebase.firestore();
-const debugEl = document.getElementById("textoDebug");
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+    let usuarioMotoboyId = "";
 
-document.getElementById("linkZapDono").href = `https://wa.me/${numeroWhatsAppDono}`;
-document.getElementById("linkZapDono").innerText = `https://wa.me/${numeroWhatsAppDono}`;
-
-let usuarioMotoboyNome = "";
-let usuarioMotoboyId = "";
-
-auth.onAuthStateChanged(user=>{
-  if(!user){
-    window.location.href="index.html";
-    return;
-  }
-  usuarioMotoboyId = user.uid;
-  db.collection("usuarios").doc(user.uid).get().then(doc=>{
-    if(doc.exists){
-      const dadosUsuario = doc.data();
-      usuarioMotoboyNome = dadosUsuario.nome;
-      document.getElementById("campoZap").value = dadosUsuario.whatsapp || "";
+    function valorSeguro(valor){
+      const v = Number(valor || 0);
+      return v.toFixed(2).replace(".",",");
     }
-    carregarPedidosDisponiveis();
-    carregarMeusPedidos();
-  })
-})
 
-function trocarAba(nomeAba){
-  document.querySelectorAll(".btnAba").forEach(botao=>botao.classList.remove("ativo"));
-  event.target.classList.add("ativo");
-  if(nomeAba === "disponiveis"){
-    document.getElementById("areaDisponiveis").style.display = "block";
-    document.getElementById("areaMeusPedidos").style.display = "none";
-  }else{
-    document.getElementById("areaDisponiveis").style.display = "none";
-    document.getElementById("areaMeusPedidos").style.display = "block";
-  }
-}
-
-function salvarZap(){
-  const numeroZap = document.getElementById("campoZap").value.trim();
-  db.collection("usuarios").doc(usuarioMotoboyId).update({
-    whatsapp: numeroZap
-  }).then(()=>{
-    alert("✅ Número do WhatsApp salvo!");
-  })
-}
-
-function valorSeguro(valor){
-  const v = Number(valor || 0);
-  return v.toFixed(2).replace(".",",");
-}
-
-function carregarPedidosDisponiveis(){
-  const lista = document.getElementById("listaPedidos");
-  debugEl.innerText = "Buscando pedidos com status = confirmado";
-  db.collection("pedidos")
-  .where("status","==","confirmado")
-  .onSnapshot(snapshot=>{
-    lista.innerHTML = "";
-    debugEl.innerText = "Quantidade encontrada: " + snapshot.size;
-    if(snapshot.empty){
-      lista.innerHTML = "<p class='sempedido'>😔 Nenhum pedido disponível no momento!</p>";
-      return;
-    }
-    snapshot.forEach(doc=>{
-      const p = doc.data();
-      lista.innerHTML += `
-      <div class="pedido">
-        <p><strong>Restaurante:</strong> ${p.restauranteNome || "Sem nome"}</p>
-        <p><strong>Valor que você recebe:</strong> R$ ${valorSeguro(p.valorMotoboy)}</p>
-        <p><strong>Endereço:</strong> ${p.endereco || "Sem endereço"}</p>
-        <button onclick="aceitarPedido('${doc.id}')">✅ ACEITAR ESSA CORRIDA!</button>
-      </div>
-      `;
+    auth.onAuthStateChanged(async (user)=>{
+      if(!user){
+        alert("Você precisa fazer login primeiro!");
+        window.location.href = "index.html";
+        return;
+      }
+      usuarioMotoboyId = user.uid;
+      carregarPedidosDisponiveis();
+      carregarMeusPedidos();
     })
-  }, (erro)=>{
-    debugEl.innerText = "ERRO: " + erro.message;
-  })
-}
 
-function carregarMeusPedidos(){
-  const lista = document.getElementById("listaMeusPedidos");
-  let valorTotal = 0;
-  let qtdCorridas = 0;
-  db.collection("pedidos")
-  .where("motoboyId","==",usuarioMotoboyId)
-  .onSnapshot(snapshot=>{
-    lista.innerHTML = "";
-    if(snapshot.empty){
-      lista.innerHTML = "<p class='sempedido'>Ainda não aceitou nenhuma corrida!</p>";
+    function carregarPedidosDisponiveis(){
+      const lista = document.getElementById("listaDisponiveis");
+      db.collection("pedidos")
+      .where("status","==","confirmado")
+      .onSnapshot(snapshot=>{
+        lista.innerHTML = "";
+        if(snapshot.empty){
+          lista.innerHTML = "<p class='sempedido'>Nenhum pedido disponível no momento!</p>";
+        }
+        snapshot.forEach(doc=>{
+          const p = doc.data();
+          lista.innerHTML += `
+          <div class="pedido">
+            <p><strong>Restaurante:</strong> ${p.restauranteNome || "Sem nome"}</p>
+            <p><strong>Endereço:</strong> ${p.endereco}</p>
+            <p><strong>Valor da corrida:</strong> R$ ${valorSeguro(p.valorMotoboy)}</p>
+            <button onclick="aceitarPedido('${doc.id}','${p.restauranteNome}','${p.endereco}',${p.valorMotoboy})">✅ ACEITAR CORRIDA</button>
+          </div>
+          `;
+        })
+      })
     }
-    snapshot.forEach(doc=>{
-      qtdCorridas++;
-      const p = doc.data();
-      valorTotal += Number(p.valorMotoboy || 0);
-      lista.innerHTML += `
-      <div class="pedido">
-        <p><strong>Restaurante:</strong> ${p.restauranteNome || "Sem nome"}</p>
-        <p><strong>Valor recebido:</strong> R$ ${valorSeguro(p.valorMotoboy)}</p>
-        <p><strong>Status corrida:</strong> ${p.status}</p>
-      </div>
-      `;
-    })
-    document.getElementById("totalGanho").innerText = "R$ " + valorSeguro(valorTotal);
-    document.getElementById("qtdEntregas").innerText = qtdCorridas;
-  })
-}
 
-function aceitarPedido(idPedido){
-  if(!confirm("Você tem certeza que quer aceitar essa corrida?")) return;
-  db.collection("pedidos").doc(idPedido).update({
-    status: "aceito",
-    motoboyId: usuarioMotoboyId,
-    motoboyNome: usuarioMotoboyNome
-  }).then(()=>{
-    alert("✅ Corrida aceita! Boa entrega!!!");
-  })
-}
+    function aceitarPedido(idPedido, nomeRestaurante, endereco, valorCorrida){
+      if(!confirm(`Deseja realmente aceitar essa corrida do ${nomeRestaurante} ?`)) return;
+      db.collection("pedidos").doc(idPedido).update({
+        status:"aceito",
+        motoboyId: usuarioMotoboyId,
+        motoboyNome: auth.currentUser.displayName || auth.currentUser.email
+      }).then(()=>{
+        alert("Corrida aceita com sucesso!");
+      }).catch((erro)=>{
+        alert("Erro ao aceitar corrida: " + erro.message);
+      })
+    }
+
+    function carregarMeusPedidos(){
+      const lista = document.getElementById("listaMeusPedidos");
+      let valorTotal = 0;
+      let qtdCorridas = 0;
+      db.collection("pedidos")
+      .where("motoboyId","==",usuarioMotoboyId)
+      .onSnapshot(snapshot=>{
+        lista.innerHTML = "";
+        if(snapshot.empty){
+          lista.innerHTML = "<p class='sempedido'>Ainda não aceitou nenhuma corrida!</p>";
+        }
+        snapshot.forEach(doc=>{
+          qtdCorridas++;
+          const p = doc.data();
+          if(!p.pagoParaMotoboy){
+            valorTotal += Number(p.valorMotoboy || 0);
+          }
+          const statusPagamento = p.pagoParaMotoboy ? "✅ JÁ RECEBIDO" : "⏳ Aguardando pagamento do dono";
+          lista.innerHTML += `
+          <div class="pedido">
+            <p><strong>Restaurante:</strong> ${p.restauranteNome || "Sem nome"}</p>
+            <p><strong>Endereço:</strong> ${p.endereco}</p>
+            <p><strong>Valor da corrida:</strong> R$ ${valorSeguro(p.valorMotoboy)}</p>
+            <p><strong>Status pagamento:</strong> ${statusPagamento}</p>
+            <p><strong>Status corrida:</strong> ${p.status}</p>
+          </div>
+          `;
+        })
+        document.getElementById("totalGanho").innerText = "R$ " + valorSeguro(valorTotal);
+        document.getElementById("qtdEntregas").innerText = qtdCorridas;
+      })
+    }
 </script>
 </body>
 </html>
