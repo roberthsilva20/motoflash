@@ -97,4 +97,145 @@
     const db = firebase.firestore();
     
     let usuarioNome = "Restaurante";
-    let
+    let restauranteId = "";
+    const CHAVE_PIX_DONO = "35377564000122";
+    const TAXA_DONO = 0.20;
+
+    auth.onAuthStateChanged(user => {
+      if (!user) {
+        window.location.href = "index.html";
+        return;
+      }
+      restauranteId = user.uid;
+      db.collection("usuarios").doc(user.uid).get().then(doc => {
+        if (doc.exists) {
+          usuarioNome = doc.data().nome || "Restaurante";
+        }
+        carregarPedidos();
+      });
+    });
+
+    function sair() {
+      auth.signOut().then(() => {
+        window.location.href = "index.html";
+      });
+    }
+
+    function copiarPix() {
+      navigator.clipboard.writeText(CHAVE_PIX_DONO).then(() => {
+        alert("✅ Chave PIX copiada!");
+      });
+    }
+
+    async function criarPedido() {
+      const valorInput = document.getElementById("valor").value;
+      const endereco = document.getElementById("endereco").value.trim();
+      const observacao = document.getElementById("obs").value.trim();
+      const msgEl = document.getElementById("msg-criar");
+      const btn = document.getElementById("btn-criar");
+
+      if (!valorInput || parseFloat(valorInput) < 7) {
+        msgEl.innerHTML = '<span style="color:#ef4444;">❌ Valor mínimo é R$ 7,00</span>';
+        return;
+      }
+      if (!endereco) {
+        msgEl.innerHTML = '<span style="color:#ef4444;">❌ Preencha o endereço</span>';
+        return;
+      }
+
+      const valorTotal = parseFloat(valorInput);
+      const valorDono = valorTotal * TAXA_DONO;
+      const valorMotoboy = valorTotal - valorDono;
+
+      btn.disabled = true;
+      msgEl.innerHTML = '<span style="color:#22c55e;">⏳ Criando pedido...</span>';
+
+      try {
+        await db.collection("pedidos").add({
+          restauranteId: restauranteId,
+          restauranteNome: usuarioNome,
+          valorTotal: valorTotal,
+          valorDono: valorDono,
+          valorMotoboy: valorMotoboy,
+          endereco: endereco,
+          observacao: observacao,
+          status: "pendente",
+          data: firebase.firestore.FieldValue.serverTimestamp()
+        });
+
+        msgEl.innerHTML = '<span style="color:#22c55e;">✅ Pedido criado com sucesso! Confirme o PIX abaixo.</span>';
+        document.getElementById("valor").value = "";
+        document.getElementById("endereco").value = "";
+        document.getElementById("obs").value = "";
+        carregarPedidos();
+      } catch (erro) {
+        msgEl.innerHTML = '<span style="color:#ef4444;">❌ Erro ao criar pedido</span>';
+      }
+      
+      btn.disabled = false;
+    }
+
+    function confirmarPix(pedidoId) {
+      if (!confirm("✅ Você já enviou o PIX?")) return;
+      
+      db.collection("pedidos").doc(pedidoId).update({
+        status: "aguardando-aprovacao"
+      }).then(() => {
+        alert("✅ PIX confirmado! Aguardando aprovação do dono.");
+      }).catch(() => {
+        alert("❌ Erro ao confirmar");
+      });
+    }
+
+    function carregarPedidos() {
+      const lista = document.getElementById("lista-pedidos");
+      
+      db.collection("pedidos")
+        .where("restauranteId", "==", restauranteId)
+        .orderBy("data", "desc")
+        .onSnapshot(snapshot => {
+          lista.innerHTML = "";
+          
+          if (snapshot.empty) {
+            lista.innerHTML = '<p class="sem-dados">Nenhum pedido criado ainda.</p>';
+            return;
+          }
+
+          snapshot.forEach(doc => {
+            const p = doc.data();
+            const data = p.data ? new Date(p.data.toDate()).toLocaleString('pt-BR') : "";
+            
+            let statusClass = 'pendente';
+            let statusTexto = '⏳ Aguardando Confirmação de PIX';
+            if (p.status === 'aguardando-aprovacao') {
+              statusClass = 'pendente';
+              statusTexto = '⏳ PIX enviado — Aguardando dono confirmar';
+            } else if (p.status === 'confirmado') {
+              statusClass = 'confirmado';
+              statusTexto = '✅ Disponível para Motoboys';
+            } else if (p.status === 'aceito') {
+              statusClass = 'aceito';
+              statusTexto = '🏍️ Aceito por: ' + (p.motoboyNome || 'Motoboy');
+            }
+
+            let botoes = '';
+            if (p.status === 'pendente') {
+              botoes = `<button style="background:#3b82f6;color:white;border:none;padding:8px 14px;border-radius:6px;margin-top:10px;cursor:pointer;font-weight:bold;" onclick="confirmarPix('${doc.id}')">✅ Já enviei o PIX</button>`;
+            }
+
+            lista.innerHTML += `
+              <div class="pedido">
+                <h4>📦 Pedido — ${data}</h4>
+                <p><strong>Valor:</strong> R$ ${p.valorTotal.toFixed(2).replace('.', ',')}</p>
+                <p><strong>Endereço:</strong> ${p.endereco}</p>
+                ${p.observacao ? `<p><strong>Obs:</strong> ${p.observacao}</p>` : ''}
+                <span class="status ${statusClass}">${statusTexto}</span>
+                ${botoes}
+              </div>
+            `;
+          });
+        });
+    }
+  </script>
+</body>
+</html>
