@@ -3,79 +3,38 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>🏍️ Motoflash — Painel do Motoboy</title>
+  <title>🏍️ Motoflash — Painel Motoboy</title>
   <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore-compat.js"></script>
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: Arial, sans-serif; }
-    body { background: #f4f4f4; padding: 15px; }
-    header { background: #111; color: white; padding: 18px 20px; border-radius: 10px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
-    h1 { font-size: 20px; }
-    .sair-btn { background: #ef4444; color: white; border: none; padding: 8px 14px; border-radius: 6px; cursor: pointer; font-size: 14px; }
-    .abas { display: flex; gap: 10px; margin-bottom: 20px; }
-    .aba-btn { flex: 1; padding: 12px; background: white; border: none; border-radius: 6px; font-size: 15px; cursor: pointer; color: #555; }
-    .aba-btn.ativo { background: #22c55e; color: white; }
-    .card { background: white; padding: 20px; border-radius: 10px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
-    h2 { font-size: 18px; margin-bottom: 15px; color: #222; }
-    .pedido { border: 1px solid #eee; border-radius: 8px; padding: 15px; margin-bottom: 12px; }
-    .pedido h4 { font-size: 15px; margin-bottom: 8px; color: #222; }
-    .pedido p { font-size: 14px; margin-bottom: 4px; color: #555; }
-    .valor-destaque { font-size: 18px; font-weight: bold; color: #22c55e; margin: 8px 0; }
-    button.aceitar { background: #22c55e; color: white; border: none; padding: 10px 16px; border-radius: 6px; cursor: pointer; font-weight: bold; width: 100%; margin-top: 8px; }
-    .sem-dados { text-align: center; color: #888; padding: 20px; }
-    .pagamento { background: #fef3c7; border-left: 4px solid #f59e0b; padding: 10px; border-radius: 4px; margin-top: 8px; }
-    .pago { background: #dcfce7; border-left: 4px solid #22c55e; }
-    .suporte-box { background: #e0f2fe; border-left: 4px solid #0284c7; padding: 12px; border-radius: 4px; margin-bottom: 15px; }
-    .suporte-box a { color: #0284c7; font-weight: bold; text-decoration: none; }
-    .oculto { display: none !important; }
-    .resumo-box { background: #f0fdf4; padding: 15px; border-radius: 8px; margin-bottom: 15px; }
-    .resumo-box p { font-size: 16px; margin-bottom: 5px; }
-    .resumo-box .total { font-size: 22px; font-weight: bold; color: #16a34a; }
+    * { box-sizing: border-box; margin:0; padding:0; font-family: Arial, sans-serif; }
+    body { background:#f4f4f4; padding:15px; }
+    header { background:#111; color:white; padding:16px; border-radius:10px; text-align:center; margin-bottom:20px; }
+    .card { background:white; padding:18px; border-radius:10px; margin-bottom:15px; }
+    h2 { font-size:18px; margin-bottom:12px; }
+    .pedido { border:1px solid #ddd; border-radius:8px; padding:14px; margin-bottom:12px; }
+    button { width:100%; padding:12px; border:none; border-radius:6px; background:#22c55e; color:white; font-weight:bold; font-size:15px; cursor:pointer; }
+    .sempedido { text-align:center; color:#777; padding:30px; }
+    .debug { background:#ffe4e6; padding:10px; border-radius:6px; margin-bottom:15px; }
   </style>
 </head>
 <body>
   <header>
     <h1>🏍️ Painel do Motoboy</h1>
-    <button class="sair-btn" onclick="sair()">Sair</button>
   </header>
-
-  <div class="abas">
-    <button class="aba-btn ativo" id="aba-disponiveis" onclick="mostrarAba('disponiveis')">📦 Disponíveis</button>
-    <button class="aba-btn" id="aba-corridas" onclick="mostrarAba('corridas')">✅ Minhas Corridas</button>
+  <div class="debug">
+    <p>🔍 <span id="textoDebug"></span></p>
   </div>
-
-  <div id="area-disponiveis">
-    <div class="card">
-      <h2>📦 Pedidos Disponíveis</h2>
-      <div id="lista-disponiveis">
-        <p class="sem-dados">Nenhum pedido disponível no momento.</p>
-      </div>
+  <div class="card">
+    <h2>📦 Pedidos Disponíveis</h2>
+    <div id="listaPedidos">
+      <p>Carregando...</p>
     </div>
   </div>
 
-  <div id="area-corridas" class="oculto">
-    <div class="card">
-      <h2>✅ Minhas Corridas</h2>
-      <div class="resumo-box">
-        <p>💰 <strong>Total a receber:</strong></p>
-        <p class="total" id="valor-total">R$ 0,00</p>
-      </div>
-      <div id="lista-corridas">
-        <p class="sem-dados">Nenhuma corrida concluída ainda.</p>
-      </div>
-    </div>
-
-    <div class="card">
-      <div class="suporte-box">
-        📱 <strong>Solicitar pagamento?</strong><br>
-        Fale com o dono: <a href="https://wa.me/5532999231697" target="_blank">(32) 99923-1697</a>
-      </div>
-    </div>
-  </div>
-
-  <script>
-    const firebaseConfig = {
+<script>
+const firebaseConfig = {
       apiKey: "AIzaSyBD9qiDcnYQJDGn850KUkMpiBatuP0DWT8",
       authDomain: "motoflash-b1396.firebaseapp.com",
       projectId: "motoflash-b1396",
@@ -84,19 +43,66 @@
       appId: "1:709365607477:web:5a83bf82fafef1ca9e957c"
     };
 
-    firebase.initializeApp(firebaseConfig);
-    const auth = firebase.auth();
-    const db = firebase.firestore();
-    
-    let usuarioNome = "";
-    let motoboyId = "";
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
+const debugEl = document.getElementById("textoDebug");
 
-    auth.onAuthStateChanged(user => {
-      if (!user) {
-        window.location.href = "index.html";
-        return;
-      }
-      motoboyId = user.uid;
-      
-      db.collection("usuarios").doc(user.uid).get().then(doc => {
-        if (doc.exists) {
+let usuarioMotoboyNome = "";
+let usuarioMotoboyId = "";
+
+auth.onAuthStateChanged(user=>{
+  if(!user){
+    window.location.href="index.html";
+    return;
+  }
+  usuarioMotoboyId = user.uid;
+  db.collection("usuarios").doc(user.uid).get().then(doc=>{
+    if(doc.exists){
+      usuarioMotoboyNome = doc.data().nome;
+    }
+    carregarPedidosDisponiveis();
+  })
+})
+
+function carregarPedidosDisponiveis(){
+  const lista = document.getElementById("listaPedidos");
+  debugEl.innerText = "Buscando pedidos com status = confirmado";
+  db.collection("pedidos")
+  .where("status","==","confirmado")
+  .onSnapshot(snapshot=>{
+    lista.innerHTML = "";
+    debugEl.innerText = "Quantidade encontrada: " + snapshot.size;
+    if(snapshot.empty){
+      lista.innerHTML = "<p class='sempedido'>😔 Nenhum pedido disponível no momento!</p>";
+      return;
+    }
+    snapshot.forEach(doc=>{
+      const p = doc.data();
+      lista.innerHTML += `
+      <div class="pedido">
+        <p><strong>Restaurante:</strong> ${p.restauranteNome}</p>
+        <p><strong>Valor que você recebe:</strong> R$ ${p.valorMotoboy.toFixed(2).replace(".",",")}</p>
+        <p><strong>Endereço:</strong> ${p.endereco}</p>
+        <button onclick="aceitarPedido('${doc.id}')">✅ ACEITAR ESSA CORRIDA!</button>
+      </div>
+      `;
+    })
+  }, (erro)=>{
+    debugEl.innerText = "ERRO: " + erro.message;
+  })
+}
+
+function aceitarPedido(idPedido){
+  if(!confirm("Você tem certeza que quer aceitar essa corrida?")) return;
+  db.collection("pedidos").doc(idPedido).update({
+    status: "aceito",
+    motoboyId: usuarioMotoboyId,
+    motoboyNome: usuarioMotoboyNome
+  }).then(()=>{
+    alert("✅ Corrida aceita! Boa entrega!!!");
+  })
+}
+</script>
+</body>
+</html>
