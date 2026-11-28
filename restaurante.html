@@ -192,7 +192,6 @@
       
       db.collection("pedidos")
         .where("restauranteId", "==", restauranteId)
-        .orderBy("data", "desc")
         .onSnapshot(snapshot => {
           lista.innerHTML = "";
           
