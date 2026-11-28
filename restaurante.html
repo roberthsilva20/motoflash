@@ -18,6 +18,7 @@
     input, textarea { width:100%; padding:12px; margin:8px 0; border:1px solid #ddd; border-radius:8px; font-size:16px; }
     .botaoCriar { width:100%; padding:14px; border:none; border-radius:8px; background:#22c55e; color:white; font-weight:bold; font-size:17px; margin-top:10px; }
     .botaoCopiar { background:#22c55e; color:white; border:none; padding:8px 12px; border-radius:6px; font-weight:bold; }
+    .botaoZap { width:100%; padding:12px; border:none; border-radius:8px; background:#25d366; color:white; font-weight:bold; font-size:16px; margin-bottom:15px; }
     .abas { display:flex; gap:8px; margin-bottom:15px; flex-wrap:wrap; }
     .aba-btn { flex:1; min-width:110px; padding:10px; border:none; border-radius:8px; background:white; font-weight:bold; }
     .aba-btn.ativo { background:#22c55e; color:white; }
@@ -31,6 +32,10 @@
     <h1>🍽️ Painel do Restaurante</h1>
     <button class="botaoSair" onclick="sairConta()">Sair</button>
   </header>
+
+  <a href="https://wa.me/5532999231697" target="_blank">
+    <button class="botaoZap">💬 SUPORTE WHATSAPP</button>
+  </a>
 
   <div class="card">
     <h2>📦 Novo Pedido de Entrega</h2>
@@ -201,7 +206,6 @@
               <p><strong>Endereço para entrega:</strong> ${p.endereco}</p>
               <p><strong>Valor total:</strong> R$ ${valorSeguro(p.valorTotal)}</p>
               <p><strong>Motoboy que aceitou:</strong> ${p.motoboyNome}</p>
-              <p><strong>Status pagamento para motoboy:</strong> ${p.pagoParaMotoboy ? "✅ Já foi pago pelo dono" : "⏳ Ainda não foi pago"}</p>
             </div>
           `;
         })
