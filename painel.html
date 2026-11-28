@@ -3,62 +3,75 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>🏍️ Motoflash — Motoboy</title>
+  <title>🏍️ Motoflash — Painel do Motoboy</title>
   <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore-compat.js"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: Arial, sans-serif; }
     body { background: #f4f4f4; padding: 15px; }
-    header { background: #111; color: white; padding: 15px; border-radius: 10px; margin-bottom: 15px; text-align: center; }
+    header { background: #111; color: white; padding: 18px 20px; border-radius: 10px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
+    h1 { font-size: 20px; }
+    .sair-btn { background: #ef4444; color: white; border: none; padding: 8px 14px; border-radius: 6px; cursor: pointer; font-size: 14px; }
     .abas { display: flex; gap: 10px; margin-bottom: 20px; }
-    .aba-btn { flex: 1; padding: 10px; border: none; border-radius: 6px; background: #ddd; cursor: pointer; font-size: 15px; }
-    .aba-btn.ativo { background: #22c55e; color: white; font-weight: bold; }
-    .aviso { background: #dbeafe; padding: 12px; border-radius: 6px; margin-bottom: 15px; border-left: 4px solid #3b82f6; }
-    .pedido { background: white; padding: 15px; border-radius: 10px; margin-bottom: 12px; border-left: 4px solid #22c55e; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-    .pedido h3 { font-size: 16px; margin-bottom: 10px; color: #222; }
-    .pedido p { margin-bottom: 6px; color: #444; font-size: 14px; }
-    .btn { background: #22c55e; color: white; border: none; padding: 10px 15px; border-radius: 6px; cursor: pointer; font-weight: bold; width: 100%; font-size: 15px; margin-top: 8px; }
-    .sair { background: #666; color: white; border: none; padding: 8px 15px; border-radius: 6px; cursor: pointer; margin-bottom: 15px; }
-    .sem-dados { color: #666; font-style: italic; text-align: center; padding: 40px 20px; }
-    .ganhos-card { background: white; padding: 20px; border-radius: 10px; margin-bottom: 20px; text-align: center; border-left: 4px solid #22c55e; }
-    .ganhos-valor { font-size: 32px; font-weight: bold; color: #22c55e; margin: 10px 0; }
-    .ganhos-info { color: #666; font-size: 14px; }
-    .historico-item { background: white; padding: 12px; border-radius: 8px; margin-bottom: 8px; border-left: 3px solid #22c55e; }
-    .data-pequena { font-size: 12px; color: #888; margin-top: 4px; }
+    .aba-btn { flex: 1; padding: 12px; background: white; border: none; border-radius: 6px; font-size: 15px; cursor: pointer; color: #555; }
+    .aba-btn.ativo { background: #22c55e; color: white; }
+    .card { background: white; padding: 20px; border-radius: 10px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+    h2 { font-size: 18px; margin-bottom: 15px; color: #222; }
+    .pedido { border: 1px solid #eee; border-radius: 8px; padding: 15px; margin-bottom: 12px; }
+    .pedido h4 { font-size: 15px; margin-bottom: 8px; color: #222; }
+    .pedido p { font-size: 14px; margin-bottom: 4px; color: #555; }
+    .valor-destaque { font-size: 18px; font-weight: bold; color: #22c55e; margin: 8px 0; }
+    button.aceitar { background: #22c55e; color: white; border: none; padding: 10px 16px; border-radius: 6px; cursor: pointer; font-weight: bold; width: 100%; margin-top: 8px; }
+    .sem-dados { text-align: center; color: #888; padding: 20px; }
+    .pagamento { background: #fef3c7; border-left: 4px solid #f59e0b; padding: 10px; border-radius: 4px; margin-top: 8px; }
+    .pago { background: #dcfce7; border-left: 4px solid #22c55e; }
+    .suporte-box { background: #e0f2fe; border-left: 4px solid #0284c7; padding: 12px; border-radius: 4px; margin-bottom: 15px; }
+    .suporte-box a { color: #0284c7; font-weight: bold; text-decoration: none; }
     .oculto { display: none !important; }
+    .resumo-box { background: #f0fdf4; padding: 15px; border-radius: 8px; margin-bottom: 15px; }
+    .resumo-box p { font-size: 16px; margin-bottom: 5px; }
+    .resumo-box .total { font-size: 22px; font-weight: bold; color: #16a34a; }
   </style>
 </head>
 <body>
-  <button class="sair" onclick="sair()">← Sair</button>
-
   <header>
-    <h1 id="nome-usuario">🏍️ Motoflash</h1>
+    <h1>🏍️ Painel do Motoboy</h1>
+    <button class="sair-btn" onclick="sair()">Sair</button>
   </header>
 
-  <!-- Abas -->
   <div class="abas">
-    <button class="aba-btn ativo" id="aba-pedidos" onclick="mostrarAba('pedidos')">📋 Pedidos</button>
-    <button class="aba-btn" id="aba-ganhos" onclick="mostrarAba('ganhos')">💰 Meus Ganhos</button>
+    <button class="aba-btn ativo" id="aba-disponiveis" onclick="mostrarAba('disponiveis')">📦 Disponíveis</button>
+    <button class="aba-btn" id="aba-corridas" onclick="mostrarAba('corridas')">✅ Minhas Corridas</button>
   </div>
 
-  <!-- Área de Pedidos Disponíveis -->
-  <div id="area-pedidos">
-    <div class="aviso">
-      💡 Apenas pedidos com PIX confirmado aparecem aqui. Clique para aceitar!
+  <div id="area-disponiveis">
+    <div class="card">
+      <h2>📦 Pedidos Disponíveis</h2>
+      <div id="lista-disponiveis">
+        <p class="sem-dados">Nenhum pedido disponível no momento.</p>
+      </div>
     </div>
-    <div id="lista-pedidos"><p class="sem-dados">Carregando...</p></div>
   </div>
 
-  <!-- Área de Meus Ganhos -->
-  <div id="area-ganhos" class="oculto">
-    <div class="ganhos-card">
-      <p>💰 Total recebido</p>
-      <div class="ganhos-valor" id="valor-total">R$ 0,00</div>
-      <p class="ganhos-info" id="qtd-entregas">0 entregas concluídas</p>
+  <div id="area-corridas" class="oculto">
+    <div class="card">
+      <h2>✅ Minhas Corridas</h2>
+      <div class="resumo-box">
+        <p>💰 <strong>Total a receber:</strong></p>
+        <p class="total" id="valor-total">R$ 0,00</p>
+      </div>
+      <div id="lista-corridas">
+        <p class="sem-dados">Nenhuma corrida concluída ainda.</p>
+      </div>
     </div>
-    <h3 style="margin-bottom:10px">📝 Histórico de entregas</h3>
-    <div id="lista-historico"><p class="sem-dados">Nenhuma entrega concluída ainda.</p></div>
+
+    <div class="card">
+      <div class="suporte-box">
+        📱 <strong>Solicitar pagamento?</strong><br>
+        Fale com o dono: <a href="https://wa.me/5532999231697" target="_blank">(32) 99923-1697</a>
+      </div>
+    </div>
   </div>
 
   <script>
@@ -74,57 +87,16 @@
     firebase.initializeApp(firebaseConfig);
     const auth = firebase.auth();
     const db = firebase.firestore();
-    let usuarioId = null;
-
-    function sair() {
-      auth.signOut().then(() => window.location.href = "index.html");
-    }
-
-    function mostrarAba(nome) {
-      document.getElementById('area-pedidos').classList.toggle('oculto', nome !== 'pedidos');
-      document.getElementById('area-ganhos').classList.toggle('oculto', nome !== 'ganhos');
-      document.getElementById('aba-pedidos').classList.toggle('ativo', nome === 'pedidos');
-      document.getElementById('aba-ganhos').classList.toggle('ativo', nome === 'ganhos');
-      
-      if (nome === 'ganhos' && usuarioId) {
-        carregarGanhos();
-      }
-    }
+    
+    let usuarioNome = "";
+    let motoboyId = "";
 
     auth.onAuthStateChanged(user => {
       if (!user) {
         window.location.href = "index.html";
         return;
       }
-      usuarioId = user.uid;
-      document.getElementById('nome-usuario').innerHTML = `🏍️ Olá, ${user.displayName || 'Motoboy'}!`;
-      carregarPedidos();
-    });
-
-    function carregarPedidos() {
-      const lista = document.getElementById("lista-pedidos");
+      motoboyId = user.uid;
       
-      db.collection("pedidos")
-        .where("status", "==", "confirmado")
-        .onSnapshot(snapshot => {
-          lista.innerHTML = "";
-          
-          if (snapshot.empty) {
-            lista.innerHTML = '<p class="sem-dados">Nenhum pedido disponível no momento.<br>Volte mais tarde!</p>';
-            return;
-          }
-
-          let temPedido = false;
-          
-          snapshot.forEach(doc => {
-            const p = doc.data();
-            if (!p.motoboyId) {
-              temPedido = true;
-              const data = p.data ? new Date(p.data.toDate()).toLocaleString('pt-BR') : "Sem data";
-              
-              lista.innerHTML += `
-                <div class="pedido">
-                  <h3>📍 ${p.restaurante || "Restaurante"}</h3>
-                  <p><strong>Endereço:</strong> ${p.endereco || "Não informado"}</p>
-                  <p><strong>Valor total:</strong> R$ ${(p.valorTotal || 0).toFixed(2).replace('.', ',')}</p>
-                  <p><strong>S
+      db.collection("usuarios").doc(user.uid).get().then(doc => {
+        if (doc.exists) {
