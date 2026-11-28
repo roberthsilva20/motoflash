@@ -21,6 +21,7 @@
     .sempedido { text-align:center; color:#777; padding:30px; }
     .debug { background:#ffe4e6; padding:10px; border-radius:6px; margin-bottom:15px; }
     .caixaGanho { background:#ecfdf5; padding:15px; border-radius:8px; margin-bottom:15px; }
+    .contatoDono { background:#dbeafe; padding:15px; border-radius:8px; margin-bottom:15px; }
     input { width:100%; padding:10px; border:1px solid #ccc; border-radius:6px; margin:8px 0; }
   </style>
 </head>
@@ -30,6 +31,12 @@
   </header>
   <div class="debug">
     <p>🔍 <span id="textoDebug"></span></p>
+  </div>
+
+  <!-- CAIXA COM O CONTATO DO DONO -->
+  <div class="contatoDono">
+    <h3>📞 Contato do Dono para Recebimento</h3>
+    <p>WhatsApp: <a id="linkZapDono" target="_blank">Clique aqui para chamar!</a></p>
   </div>
 
   <div class="caixaGanho">
@@ -61,6 +68,8 @@
   </div>
 
 <script>
+const numeroWhatsAppDono = "5532999231697";
+
 const firebaseConfig = {
       apiKey: "AIzaSyBD9qiDcnYQJDGn850KUkMpiBatuP0DWT8",
       authDomain: "motoflash-b1396.firebaseapp.com",
@@ -74,6 +83,9 @@ firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
 const debugEl = document.getElementById("textoDebug");
+
+document.getElementById("linkZapDono").href = `https://wa.me/${numeroWhatsAppDono}`;
+document.getElementById("linkZapDono").innerText = `https://wa.me/${numeroWhatsAppDono}`;
 
 let usuarioMotoboyNome = "";
 let usuarioMotoboyId = "";
@@ -116,6 +128,11 @@ function salvarZap(){
   })
 }
 
+function valorSeguro(valor){
+  const v = Number(valor || 0);
+  return v.toFixed(2).replace(".",",");
+}
+
 function carregarPedidosDisponiveis(){
   const lista = document.getElementById("listaPedidos");
   debugEl.innerText = "Buscando pedidos com status = confirmado";
@@ -133,7 +150,7 @@ function carregarPedidosDisponiveis(){
       lista.innerHTML += `
       <div class="pedido">
         <p><strong>Restaurante:</strong> ${p.restauranteNome || "Sem nome"}</p>
-        <p><strong>Valor que você recebe:</strong> R$ ${Number(p.valorMotoboy).toFixed(2).replace(".",",")}</p>
+        <p><strong>Valor que você recebe:</strong> R$ ${valorSeguro(p.valorMotoboy)}</p>
         <p><strong>Endereço:</strong> ${p.endereco || "Sem endereço"}</p>
         <button onclick="aceitarPedido('${doc.id}')">✅ ACEITAR ESSA CORRIDA!</button>
       </div>
@@ -158,16 +175,16 @@ function carregarMeusPedidos(){
     snapshot.forEach(doc=>{
       qtdCorridas++;
       const p = doc.data();
-      valorTotal += Number(p.valorMotoboy);
+      valorTotal += Number(p.valorMotoboy || 0);
       lista.innerHTML += `
       <div class="pedido">
         <p><strong>Restaurante:</strong> ${p.restauranteNome || "Sem nome"}</p>
-        <p><strong>Valor recebido:</strong> R$ ${Number(p.valorMotoboy).toFixed(2).replace(".",",")}</p>
+        <p><strong>Valor recebido:</strong> R$ ${valorSeguro(p.valorMotoboy)}</p>
         <p><strong>Status corrida:</strong> ${p.status}</p>
       </div>
       `;
     })
-    document.getElementById("totalGanho").innerText = "R$ " + valorTotal.toFixed(2).replace(".",",");
+    document.getElementById("totalGanho").innerText = "R$ " + valorSeguro(valorTotal);
     document.getElementById("qtdEntregas").innerText = qtdCorridas;
   })
 }
