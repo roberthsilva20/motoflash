@@ -10,12 +10,17 @@
   <style>
     * { box-sizing: border-box; margin:0; padding:0; font-family: Arial, sans-serif; }
     body { background:#f4f4f4; padding:15px; }
-    header { background:#111; color:white; padding:16px; border-radius:10px; text-align:center; margin-bottom:15px; }
+    header { background:#111; color:white; padding:16px; border-radius:10px; display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; }
+    .botaoSair { background:#ef4444; color:white; border:none; padding:8px 12px; border-radius:6px; font-weight:bold; }
+    .avisoPix { background:#fef9c3; padding:12px; border-radius:8px; margin-bottom:15px; }
+    .card { background:white; padding:15px; border-radius:10px; margin-bottom:15px; }
+    h2 { margin-bottom:12px; font-size:18px; }
+    input, textarea { width:100%; padding:12px; margin:8px 0; border:1px solid #ddd; border-radius:8px; font-size:16px; }
+    .botaoCriar { width:100%; padding:14px; border:none; border-radius:8px; background:#22c55e; color:white; font-weight:bold; font-size:17px; margin-top:10px; }
+    .botaoCopiar { background:#22c55e; color:white; border:none; padding:8px 12px; border-radius:6px; font-weight:bold; }
     .abas { display:flex; gap:8px; margin-bottom:15px; flex-wrap:wrap; }
     .aba-btn { flex:1; min-width:110px; padding:10px; border:none; border-radius:8px; background:white; font-weight:bold; }
     .aba-btn.ativo { background:#22c55e; color:white; }
-    .card { background:white; padding:15px; border-radius:10px; margin-bottom:15px; }
-    h2 { margin-bottom:12px; font-size:18px; }
     .pedido { border:1px solid #ddd; border-radius:8px; padding:12px; margin-bottom:10px; }
     .oculto { display:none !important; }
     .semdado { text-align:center; color:#777; padding:20px; }
@@ -24,7 +29,21 @@
 <body>
   <header>
     <h1>🍽️ Painel do Restaurante</h1>
+    <button class="botaoSair" onclick="sairConta()">Sair</button>
   </header>
+
+  <div class="card">
+    <h2>📦 Novo Pedido de Entrega</h2>
+    <div class="avisoPix">
+      <p><strong>⚠️ Valor mínimo da entrega: R$ 7,00</strong></p>
+      <p><strong>💳 Chave PIX para pagamento:</strong> 35377564000122</p>
+      <button class="botaoCopiar" onclick="copiarPix()">Copiar</button>
+    </div>
+    <input type="text" id="valorTotal" placeholder="Valor total da entrega (R$)">
+    <textarea id="endereco" placeholder="Endereço de entrega: Rua, número, bairro, cidade"></textarea>
+    <textarea id="observacao" placeholder="Observação (opcional)"></textarea>
+    <button class="botaoCriar" onclick="criarNovoPedido()">Criar Pedido</button>
+  </div>
 
   <div class="abas">
     <button class="aba-btn ativo" onclick="trocarAba('novos')">📥 Pedidos Novos</button>
@@ -33,7 +52,7 @@
 
   <div id="areaNovos">
     <div class="card">
-      <h2>📥 Novos pedidos que você enviou</h2>
+      <h2>📥 Meus Pedidos Novos</h2>
       <div id="listaNovos">
         <p>Carregando...</p>
       </div>
@@ -63,6 +82,8 @@
     const auth = firebase.auth();
     const db = firebase.firestore();
     let idRestauranteLogado = "";
+    let nomeRestaurante = "";
+    const chavePix = "35377564000122";
 
     function valorSeguro(valor){
       const v = Number(valor || 0);
@@ -75,9 +96,57 @@
         return;
       }
       idRestauranteLogado = user.uid;
+      nomeRestaurante = user.displayName || user.email;
       carregarPedidosNovos();
       carregarPedidosAceitos();
     })
+
+    function sairConta(){
+      auth.signOut().then(()=>{
+        window.location.href = "index.html";
+      })
+    }
+
+    function copiarPix(){
+      navigator.clipboard.writeText(chavePix);
+      alert("Chave PIX copiada!");
+    }
+
+    function criarNovoPedido(){
+      const valorDigitado = document.getElementById("valorTotal").value.replace(",",".");
+      const valorTotal = Number(valorDigitado);
+      const endereco = document.getElementById("endereco").value.trim();
+      const observacao = document.getElementById("observacao").value.trim();
+      if(valorTotal < 7){
+        alert("Valor mínimo é R$7,00!");
+        return;
+      }
+      if(!endereco){
+        alert("Preencha o endereço!");
+        return;
+      }
+      const valorDono = valorTotal * 0.20;
+      const valorMotoboy = valorTotal * 0.80;
+      db.collection("pedidos").add({
+        idRestaurante: idRestauranteLogado,
+        restauranteNome: nomeRestaurante,
+        valorTotal: valorTotal,
+        valorDono: valorDono,
+        valorMotoboy: valorMotoboy,
+        endereco: endereco,
+        observacao: observacao,
+        status: "aguardando-aprovacao",
+        pagoParaMotoboy: false,
+        data: firebase.firestore.FieldValue.serverTimestamp()
+      }).then(()=>{
+        alert("Pedido criado com sucesso! Agora espere o dono confirmar o PIX!");
+        document.getElementById("valorTotal").value = "";
+        document.getElementById("endereco").value = "";
+        document.getElementById("observacao").value = "";
+      }).catch((erro)=>{
+        alert("Erro ao criar pedido: " + erro.message);
+      })
+    }
 
     function trocarAba(nomeAba){
       document.querySelectorAll(".aba-btn").forEach(botao=>botao.classList.remove("ativo"));
@@ -107,6 +176,7 @@
             <div class="pedido">
               <p><strong>Endereço para entrega:</strong> ${p.endereco}</p>
               <p><strong>Valor total:</strong> R$ ${valorSeguro(p.valorTotal)}</p>
+              <p><strong>Observação:</strong> ${p.observacao || "Sem observação"}</p>
               <p><strong>Status:</strong> ${p.status}</p>
             </div>
           `;
